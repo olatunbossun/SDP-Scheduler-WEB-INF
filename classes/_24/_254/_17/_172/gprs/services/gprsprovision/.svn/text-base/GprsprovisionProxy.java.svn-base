@@ -1,0 +1,49 @@
+package _24._254._17._172.gprs.services.gprsprovision;
+
+public class GprsprovisionProxy implements _24._254._17._172.gprs.services.gprsprovision.Gprsprovision {
+  private String _endpoint = null;
+  private _24._254._17._172.gprs.services.gprsprovision.Gprsprovision gprsprovision = null;
+  
+  public GprsprovisionProxy() {
+    _initGprsprovisionProxy();
+  }
+  
+  private void _initGprsprovisionProxy() {
+    try {
+      gprsprovision = (new _24._254._17._172.gprs.services.gprsprovision.GprsprovisionServiceLocator()).getgprsprovision();
+      if (gprsprovision != null) {
+        if (_endpoint != null)
+          ((javax.xml.rpc.Stub)gprsprovision)._setProperty("javax.xml.rpc.service.endpoint.address", _endpoint);
+        else
+          _endpoint = (String)((javax.xml.rpc.Stub)gprsprovision)._getProperty("javax.xml.rpc.service.endpoint.address");
+      }
+      
+    }
+    catch (javax.xml.rpc.ServiceException serviceException) {}
+  }
+  
+  public String getEndpoint() {
+    return _endpoint;
+  }
+  
+  public void setEndpoint(String endpoint) {
+    _endpoint = endpoint;
+    if (gprsprovision != null)
+      ((javax.xml.rpc.Stub)gprsprovision)._setProperty("javax.xml.rpc.service.endpoint.address", _endpoint);
+    
+  }
+  
+  public _24._254._17._172.gprs.services.gprsprovision.Gprsprovision getGprsprovision() {
+    if (gprsprovision == null)
+      _initGprsprovisionProxy();
+    return gprsprovision;
+  }
+  
+  public int provision(java.lang.String msisdn, java.lang.String keyword) throws java.rmi.RemoteException{
+    if (gprsprovision == null)
+      _initGprsprovisionProxy();
+    return gprsprovision.provision(msisdn, keyword);
+  }
+  
+  
+}

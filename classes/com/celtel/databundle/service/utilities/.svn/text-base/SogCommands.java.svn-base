@@ -1,0 +1,844 @@
+/*
+ * Main.java
+ *
+ * Created on April 4, 2006, 7:48 AM
+ *
+ * To change this template, choose Tools | Options and locate the template under
+ * the Source Creation and Management node. Right-click the template and choose
+ * Open. You can then make changes to the template in the Source Editor.
+ */
+package com.celtel.databundle.service.utilities;
+
+import java.text.DateFormat;
+import java.util.HashMap;
+import java.util.Locale;
+
+public class SogCommands {
+    public boolean busy = false;
+    TelnetWrapper telnet = new TelnetWrapper();
+    String Response1 = "RESP:0;";
+    String Response2 = "RESP:10216;";
+    String Response3 = "RESP:10218;";
+    String Response4 = "RESP:10220;";
+    String Response5 = "RESP:10215;";
+    String iSogIP = "172.16.254.225";
+    String iSogLogin = "LOGIN:prog_seg:prog_seg;";
+    int iSogPort = 3302;
+    /** Creates a new instance of Main */
+    public SogCommands() {}
+
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String[] args) {
+        // TODO code application logic here
+        SogCommands Sog = new SogCommands();
+        System.out.println("Before Login = " + Sog.getDatetime());
+        System.out.println("Loggin in " +
+                           Sog.Sog_intialize("172.16.253.22", 3302,
+                                             "LOGIN:prog_seg:prog_seg;"));
+        System.out.println("After Login and Starting Provisioning = " +
+                           Sog.getDatetime());
+        //System.out.println("ActivateRoaming " + Sog.ActivateRoaming("2348022225019"));
+        //System.out.println("After ActivateRoaming = " + Sog.getDatetime());
+        System.out.println("DeactivateRoaming " +
+                           Sog.DeactivateRoaming("2348022225019"));
+        System.out.println("After DeactivateRoaming = " + Sog.getDatetime());
+        System.out.println("Logged out = " + Sog.SogLogOUT());
+        System.out.println("IsConnected? = " + Sog.SogIsconnected());
+        //System.out.println("Prvisioning " + Sog.Provision_APN("2348029543227", "31", "5"));
+        //System.out.println("Prvisioning " + Sog.Provision_APN("2348029543227", "31", "5"));
+    }
+
+    public boolean Sog_intialize(String SogIP, int SogPort, String SogLogin) {
+    	System.out.println("Sog Initialize.. entering method ");
+        iSogIP = SogIP;
+        iSogPort = SogPort;
+        iSogLogin = SogLogin;
+        String mResponse = "";
+        telnet.setPrompt("Enter command:");
+        String parameters= iSogIP+","+iSogPort+","+iSogLogin;
+        System.out.println("Sog Initialize.. parameters: " + parameters);
+        try {
+            if (telnet.connect(iSogIP, iSogPort) == true) {
+                System.out.println(
+                        "Sog Initialize.. waiting for Enter command promt");
+                telnet.waitfor("Enter command:");
+                mResponse = telnet.send(iSogLogin);
+                System.out.println("Sog Initialize.. Response " + mResponse);
+                if (mResponse.indexOf(Response1) > -1) {
+                    return true;
+                }
+                return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return false;
+    }
+
+
+    public boolean Provision_APN(String Msisdn, String APNid, String EQID)throws Exception {
+        String NAM = "SET:HLRSUB:MSISDN," + Msisdn + ":NAM,0;";
+        String APN = "SET:HLRSUB:MSISDN," + Msisdn +
+                     ":GPRS,DEF,PDPCONTEXT,APNID," + APNid + ",EQOSID," + EQID +
+                     ",VPAA,0,PDPTY,IPV4;";
+        String mResponse;
+
+     //   try {
+            //check to see if the connection is still up
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+
+            //send first Sog Command
+            mResponse = telnet.send(NAM);
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //check if the response is null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println(
+                        "Respose timeout in SOG, I will not reconnect to resend NAM");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(NAM);
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+
+            //check a second time if the response is still null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println("Respose timeouted out agian in SOG, I will not reconnect but will not resend NAM");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(NAM);
+                return false;
+            }
+            mResponse = mResponse.trim();
+            System.out.println("Prvisioning NAM = " + mResponse);
+            //check if response has 0 or 10216 or 10218 or 10220
+            if ((mResponse.indexOf(Response1) > -1) ||
+                (mResponse.indexOf(Response2) > -1) ||
+                (mResponse.indexOf(Response2) > -1) ||
+                (mResponse.indexOf(Response4) > -1) ||
+                (mResponse.indexOf(Response5) > -1)) {
+                //send final Sog Command
+                mResponse = telnet.send(APN);
+                //check again if the response is null, i am assuming that SOG is connected but not responding
+                if ((mResponse == null) || (mResponse == "")) {
+                    System.out.println(
+                            "Respose timeout in SOG, I will not reconnect to resend APN");
+                    this.SogLogOUT();
+                    this.telnet.disconnect();
+                    this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                    mResponse = telnet.send(APN);
+                }
+                //check a second time if the response is still null, i am assuming that SOG is connected but not responding
+                if ((mResponse == null) || (mResponse == "")) {
+                    System.out.println("Respose timeouted out agian in SOG, I will not reconnect but will not resend APN");
+                    this.SogLogOUT();
+                    this.telnet.disconnect();
+                    this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                    return false;
+                }
+
+                mResponse = mResponse.trim();
+                System.out.println("Prvisioned APN =" + mResponse);
+                if ((mResponse.indexOf(Response1) > -1) ||
+                    (mResponse.indexOf(Response2) > -1) ||
+                    (mResponse.indexOf(Response2) > -1) ||
+                    (mResponse.indexOf(Response4) > -1) ||
+                    (mResponse.indexOf(Response5) > -1)) {
+                    return true;
+                }
+            }
+        /*} catch (Exception e) {
+            e.printStackTrace();
+        }*/
+        return false;
+    }
+    
+    public HashMap Provision_APN(String Msisdn, String APNid, String EQID,HashMap result)throws Exception {
+
+        String NAM = "SET:HLRSUB:MSISDN," + Msisdn + ":NAM,0;";
+        String APN = "SET:HLRSUB:MSISDN," + Msisdn +
+                     ":GPRS,DEF,PDPCONTEXT,APNID," + APNid + ",EQOSID," + EQID +
+                     ",VPAA,0,PDPTY,IPV4;";
+        String mResponse="";
+
+     //   try {
+            //check to see if the connection is still up
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                	result.put("isSuccessful",Boolean.valueOf(false));
+                	result.put("mResponse",mResponse);
+                    return result;
+                }
+                System.out.println("Im now connected");
+            }
+
+            //send first Sog Command
+            mResponse = telnet.send(NAM);
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                	result.put("isSuccessful",Boolean.valueOf(false));
+                	result.put("mResponse",mResponse);
+                    return result;
+                }
+                System.out.println("Im now connected");
+            }
+            //check if the response is null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println(
+                        "Respose timeout in SOG, I will not reconnect to resend NAM");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(NAM);
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                	result.put("isSuccessful",Boolean.valueOf(false));
+                	result.put("mResponse",mResponse);
+                    return result;
+                }
+                System.out.println("Im now connected");
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                	result.put("isSuccessful",Boolean.valueOf(false));
+                	result.put("mResponse",mResponse);
+                    return result;
+                }
+                System.out.println("Im now connected");
+            }
+
+            //check a second time if the response is still null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println("Respose timeouted out agian in SOG, I will not reconnect but will not resend NAM");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(NAM);
+                
+                result.put("isSuccessful",Boolean.valueOf(false));
+            	result.put("mResponse",mResponse.trim());
+                return result;
+            }
+            mResponse = mResponse.trim();
+            System.out.println("Prvisioning NAM = " + mResponse);
+            //check if response has 0 or 10216 or 10218 or 10220
+            if ((mResponse.indexOf(Response1) > -1) ||
+                (mResponse.indexOf(Response2) > -1) ||
+                (mResponse.indexOf(Response2) > -1) ||
+                (mResponse.indexOf(Response4) > -1) ||
+                (mResponse.indexOf(Response5) > -1)) {
+                //send final Sog Command
+                mResponse = telnet.send(APN);
+                //check again if the response is null, i am assuming that SOG is connected but not responding
+                if ((mResponse == null) || (mResponse == "")) {
+                    System.out.println(
+                            "Respose timeout in SOG, I will not reconnect to resend APN");
+                    this.SogLogOUT();
+                    this.telnet.disconnect();
+                    this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                    mResponse = telnet.send(APN);
+                }
+                //check a second time if the response is still null, i am assuming that SOG is connected but not responding
+                if ((mResponse == null) || (mResponse == "")) {
+                    System.out.println("Respose timeouted out agian in SOG, I will not reconnect but will not resend APN");
+                    this.SogLogOUT();
+                    this.telnet.disconnect();
+                    this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                    result.put("isSuccessful",Boolean.valueOf(false));
+                	result.put("mResponse",mResponse);
+                    return result;
+                }
+
+                mResponse = mResponse.trim();
+                System.out.println("Prvisioned APN =" + mResponse);
+                if ((mResponse.indexOf(Response1) > -1) ||
+                    (mResponse.indexOf(Response2) > -1) ||
+                    (mResponse.indexOf(Response2) > -1) ||
+                    (mResponse.indexOf(Response4) > -1) ||
+                    (mResponse.indexOf(Response5) > -1)) {
+                	result.put("isSuccessful",Boolean.valueOf(true));
+                	result.put("mResponse",mResponse);
+                    return result;
+                }
+            }
+        /*} catch (Exception e) {
+            e.printStackTrace();
+        }*/
+        return result;
+    
+    }
+
+    static String Divertcom1 = "SET:HLRSUB:MSISDN,";
+    static String Divertcom2 = ":DCF,0:CFU,1,0,TS10,0,BS20:CFNRC,1,1,2348020100155,TS10:SOCFRC,1:CFNRY,1,1,2348020100155:SOCFRY,1:CAW,1";
+    public boolean SetDivert(String Msisdn) {
+        String SogString = Divertcom1 + Msisdn + Divertcom2;
+        //String SogString = "SET:HLRSUB:MSISDN,"+ Msisdn + ":DCF,0:CFU,1,0,TS10,0,BS20:CFNRC,1,1," + DivertTo + ",TS10:SOCFRC,1:CFNRY,1,1," + DivertTo + ":SOCFRY,1:CAW,1";
+        //SET:HLRSUB:MSISDN,2348022225550:DCF,0:CFU,1,0,TS10,0,BS20:CFNRC,1,1,2348020100155,TS10:SOCFRC,1:CFNRY,1,1,2348020100155:SOCFRY,1:CAW,1;
+        String mResponse;
+        try {
+            //check to see if the connection is still up
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //send first Sog Command
+            mResponse = telnet.send(SogString);
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //check if the response is null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println(
+                        "Respose timeout in SOG, I will not reconnect to resend set divert ");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(SogString);
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //check a second time if the response is still null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println("Respose timeouted out agian in SOG, I will not reconnect but will not resend set divert");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(SogString);
+                return false;
+            }
+            if ((mResponse.indexOf(Response1) > -1) ||
+                (mResponse.indexOf(Response2) > -1) ||
+                (mResponse.indexOf(Response2) > -1) ||
+                (mResponse.indexOf(Response4) > -1) ||
+                (mResponse.indexOf(Response5) > -1)) {
+                System.out.println("Divert for " + Msisdn +
+                                   " Was Set Successfully");
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("Divert for " + Msisdn + " Failed");
+        return false;
+    }
+
+    public boolean SetDivert(String Msisdn, String DivertTo) {
+        //String SogString = Divertcom1+ Msisdn + Divertcom2;
+        String SogString = "SET:HLRSUB:MSISDN," + Msisdn +
+                           ":DCF,0:CFU,1,0,TS10,0,BS20:CFNRC,1,1," + DivertTo +
+                           ",TS10:SOCFRC,1:CFNRY,1,1," + DivertTo +
+                           ":SOCFRY,1:CAW,1";
+        //SET:HLRSUB:MSISDN,2348022225550:DCF,0:CFU,1,0,TS10,0,BS20:CFNRC,1,1,2348020100155,TS10:SOCFRC,1:CFNRY,1,1,2348020100155:SOCFRY,1:CAW,1;
+        String mResponse;
+        try {
+            //check to see if the connection is still up
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //send first Sog Command
+            mResponse = telnet.send(SogString);
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //check if the response is null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println(
+                        "Respose timeout in SOG, I will not reconnect to resend set divert ");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(SogString);
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+
+            //check a second time if the response is still null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println("Respose timeouted out agian in SOG, I will not reconnect but will not resend set divert");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(SogString);
+                return false;
+            }
+            if ((mResponse.indexOf(Response1) > -1) ||
+                (mResponse.indexOf(Response2) > -1) ||
+                (mResponse.indexOf(Response2) > -1) ||
+                (mResponse.indexOf(Response4) > -1) ||
+                (mResponse.indexOf(Response5) > -1)) {
+                System.out.println("Divert for " + Msisdn + " to " + DivertTo +
+                                   " Was Set Successfully");
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("Divert for " + Msisdn + " to " + DivertTo +
+                           " Failed");
+        return false;
+    }
+
+    private static String firstSogString = "SET:HLRSUB:MSISDN,";
+    /*
+         SET:HLRSUB:MSISDN,2348027330399:OBR,0; --Roaming barred
+     SET:HLRSUB:MSISDN,2348027330399:OBR,2; --Roaming unbarred
+
+     SET:HLRSUB:MSISDN,2348027330399:OBO,0; --All outgoing calls barred
+     SET:HLRSUB:MSISDN,2348027330399:OBO,2; --International calls barred but Outgoing calls unbarred
+     SET:HLRSUB:MSISDN,2348027330399:OBO,1; --Outgoing calls unbarred
+
+     SET:HLRSUB:MSISDN,2348027330399:TS21,0; --Terminating SMS barred
+     SET:HLRSUB:MSISDN,2348027330399:TS21,1; --Terminating SMS unbarred
+
+     SET:HLRSUB:MSISDN,2348027330399:TS22,0; --Originating SMS barred
+     SET:HLRSUB:MSISDN,2348027330399:TS22,1; --Originating SMS unbarred
+
+     SET:HLRSUB:MSISDN,2348027330399:CFU,0; --Call forwarding unconditional barred
+     SET:HLRSUB:MSISDN,2348027330399:CFU,1; -- Call forwarding unconditional unbarred
+
+     SET:HLRSUB:MSISDN,2348027330399:CFB,0; --Call forwarding on mobile subscriber busy barred
+     SET:HLRSUB:MSISDN,2348027330399:CFB,1; -- Call forwarding on mobile subscriber busy unbarred
+
+     SET:HLRSUB:MSISDN,2348027330399:CFNRY,0; --Call forwarding on no reply barred
+     SET:HLRSUB:MSISDN,2348027330399:CFNRY,1; --Call forwarding on no reply unbarred
+
+     SET:HLRSUB:MSISDN,2348027330399:CFNRC,0; --Call forwarding on not reachable barred
+     SET:HLRSUB:MSISDN,2348027330399:CFNRC,1; -- Call forwarding on not reachable unbarred
+     */
+
+    private static String activateSogString1 = ":OBR,2;";
+    private static String activateSogString2 = ":OBO,1;";
+    private static String activateSogString3 = ":TS21,0;";
+    private static String activateSogString4 = ":TS22,0;";
+    private static String activateSogString5 = ":CFU,0;";
+    private static String activateSogString6 = ":CFB,0;";
+    private static String activateSogString7 = ":CFNRY,0;";
+    private static String activateSogString8 = ":CFNRC,0;";
+
+    private static String deactivateSogString1 = ":OBR,0;";
+    private static String deactivateSogString2 = ":OBO,0;";
+    private static String deactivateSogString3 = ":TS21,1;";
+    private static String deactivateSogString4 = ":TS22,1;";
+    private static String deactivateSogString5 = ":CFU,1;";
+    private static String deactivateSogString6 = ":CFB,1;";
+    private static String deactivateSogString7 = ":CFNRY,1;";
+    private static String deactivateSogString8 = ":CFNRC,1;";
+
+
+    public boolean DeactivateRoaming(String Msisdn) {
+        busy = true;
+
+        String mResponse;
+        try {
+            //check to see if the connection is still up
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    busy = false;
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //send first Sog Command
+            mResponse = telnet.send(firstSogString + Msisdn +
+                                    deactivateSogString1);
+            //check if the response is null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println(
+                        "Respose timeout in SOG, I will not reconnect to resend set divert ");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(firstSogString + Msisdn +
+                                        deactivateSogString1);
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    busy = false;
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //check a second time if the response is still null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println("Respose timeouted out agian in SOG, I will not reconnect but will not resend set divert");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(firstSogString + Msisdn +
+                                        deactivateSogString1);
+                //busy = false;
+                //return false;
+            }
+            if (mResponse.indexOf(Response1) > -1) {
+                System.out.println("Divert1 for " + Msisdn + " was deactivated");
+                mResponse = null;
+                mResponse = telnet.send(firstSogString + Msisdn +
+                                        deactivateSogString2);
+                if (mResponse != null && mResponse.indexOf(Response1) > -1) {
+                    System.out.println("Divert2 for " + Msisdn +
+                                       " was deactivated");
+                    mResponse = null;
+                    mResponse = telnet.send(firstSogString + Msisdn +
+                                            deactivateSogString3);
+                    if (mResponse != null && mResponse.indexOf(Response1) > -1) {
+                        System.out.println("Divert3 for " + Msisdn +
+                                           " was deactivated");
+                        mResponse = null;
+                        mResponse = telnet.send(firstSogString + Msisdn +
+                                                deactivateSogString4);
+                        if (mResponse != null &&
+                            mResponse.indexOf(Response1) > -1) {
+                            System.out.println("Divert4 for " + Msisdn +
+                                               " was deactivated");
+                            mResponse = null;
+                            mResponse = telnet.send(firstSogString + Msisdn +
+                                    deactivateSogString5);
+                            if (mResponse != null &&
+                                mResponse.indexOf(Response1) > -1) {
+                                System.out.println("Divert5 for " + Msisdn +
+                                        " was deactivated");
+                                mResponse = null;
+                                mResponse = telnet.send(firstSogString + Msisdn +
+                                        deactivateSogString6);
+                                if (mResponse != null &&
+                                    mResponse.indexOf(Response1) > -1) {
+                                    System.out.println("Divert6 for " + Msisdn +
+                                            " was deactivated");
+                                    mResponse = null;
+                                    mResponse = telnet.send(firstSogString +
+                                            Msisdn + deactivateSogString7);
+                                    if (mResponse != null &&
+                                        mResponse.indexOf(Response1) > -1) {
+                                        System.out.println("Divert7 for " +
+                                                Msisdn + " was deactivated");
+                                        mResponse = null;
+                                        mResponse = telnet.send(firstSogString +
+                                                Msisdn + deactivateSogString8);
+                                        if (mResponse != null &&
+                                            mResponse.indexOf(Response1) > -1) {
+                                            System.out.println("Divert8 for " +
+                                                    Msisdn +
+                                                    " was deactivated Successfully");
+                                            busy = false;
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        busy = false;
+        //System.out.println("Divert for " + Msisdn + " to " + DivertTo + " Failed");
+        return false;
+    }
+
+    public boolean ActivateRoaming(String Msisdn) {
+        busy = true; //SET:HLRSUB:MSISDN,2348027330399:OBO
+        String mResponse;
+        try {
+            //check to see if the connection is still up
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    busy = false;
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //send first Sog Command
+            mResponse = telnet.send(firstSogString + Msisdn +
+                                    activateSogString1);
+            //check if the response is null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println(
+                        "Respose timeout in SOG, I will not reconnect to resend set divert ");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(firstSogString + Msisdn +
+                                        activateSogString1);
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    busy = false;
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //check a second time if the response is still null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println("Respose timeouted out agian in SOG, I will not reconnect but will not resend set divert");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(firstSogString + Msisdn +
+                                        activateSogString1);
+                //busy = false;
+                //return false;
+            }
+            if (mResponse.indexOf(Response1) > -1) {
+                System.out.println("Roaming1 for " + Msisdn + " was activated");
+                mResponse = null;
+                mResponse = telnet.send(firstSogString + Msisdn +
+                                        activateSogString2);
+                System.out.println("mResponse " + mResponse);
+                if (mResponse != null && mResponse.indexOf(Response1) > -1) {
+                    System.out.println("Roaming2 for " + Msisdn +
+                                       " was activated");
+                    mResponse = null;
+                    mResponse = telnet.send(firstSogString + Msisdn +
+                                            activateSogString3);
+                    if (mResponse != null && mResponse.indexOf(Response1) > -1) {
+                        System.out.println("Roaming3 for " + Msisdn +
+                                           " was activated");
+                        mResponse = null;
+                        mResponse = telnet.send(firstSogString + Msisdn +
+                                                activateSogString4);
+                        if (mResponse != null &&
+                            mResponse.indexOf(Response1) > -1) {
+                            System.out.println("Roaming4 for " + Msisdn +
+                                               " was activated");
+                            mResponse = null;
+                            mResponse = telnet.send(firstSogString + Msisdn +
+                                    activateSogString5);
+                            if (mResponse != null &&
+                                mResponse.indexOf(Response1) > -1) {
+                                System.out.println("Roaming5 for " + Msisdn +
+                                        " was activated");
+                                mResponse = null;
+                                mResponse = telnet.send(firstSogString + Msisdn +
+                                        activateSogString6);
+                                if (mResponse != null &&
+                                    mResponse.indexOf(Response1) > -1) {
+                                    System.out.println("Roaming6 for " + Msisdn +
+                                            " was activated");
+                                    mResponse = null;
+                                    mResponse = telnet.send(firstSogString +
+                                            Msisdn + activateSogString7);
+                                    if (mResponse != null &&
+                                        mResponse.indexOf(Response1) > -1) {
+                                        System.out.println("Roaming7 for " +
+                                                Msisdn + " was activated");
+                                        mResponse = null;
+                                        mResponse = telnet.send(firstSogString +
+                                                Msisdn + activateSogString8);
+                                        if (mResponse != null &&
+                                            mResponse.indexOf(Response1) > -1) {
+                                            System.out.println("Roaming8 for " +
+                                                    Msisdn +
+                                                    " was activated Successfully");
+                                            busy = false;
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        busy = false;
+        //System.out.println("Divert for " + Msisdn + " to " + DivertTo + " Failed");
+        return false;
+    }
+
+    public boolean CancelDivert(String Msisdn) {
+        busy = true;
+        String SogString = "SET:HLRSUB:MSISDN," + Msisdn +
+                ":DCF,0:CFU,1,0,TS10,0,BS20:CFNRC,1,1,TS10:SOCFRC,1:CFNRY,1,11";
+        String mResponse;
+        try {
+            //check to see if the connection is still up
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //send first Sog Command
+            mResponse = telnet.send(SogString);
+            //check if the response is null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println(
+                        "Respose timeout in SOG, I will not reconnect to resend set divert ");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(SogString);
+            }
+            if (telnet.Isconnected() != true) {
+                System.out.println("Im not connected");
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                if (telnet.Isconnected() == false) {
+                    return false;
+                }
+                System.out.println("Im now connected");
+            }
+            //check a second time if the response is still null, i am assuming that SOG is connected but not responding
+            if ((mResponse == null) || (mResponse == "")) {
+                System.out.println("Respose timeouted out agian in SOG, I will not reconnect but will not resend set divert");
+                this.SogLogOUT();
+                this.telnet.disconnect();
+                this.Sog_intialize(iSogIP, iSogPort, iSogLogin);
+                mResponse = telnet.send(SogString);
+                return false;
+            }
+            if ((mResponse.indexOf(Response1) > -1) ||
+                (mResponse.indexOf(Response2) > -1) ||
+                (mResponse.indexOf(Response3) > -1) ||
+                (mResponse.indexOf(Response4) > -1) ||
+                (mResponse.indexOf(Response5) > -1)) {
+                System.out.println("Divert for " + Msisdn +
+                                   " Was Set Successfully");
+                return true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        busy = false;
+        //System.out.println("Divert for " + Msisdn + " to " + DivertTo + " Failed");
+        return false;
+    }
+
+    public boolean SogLogOUT() {
+        String Lout = "LOGOUT;";
+        try {
+            if (telnet.Isconnected() == true) {
+
+                telnet.send(Lout);
+                telnet.disconnect();
+                return true;
+            }
+            return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        //return false;
+    }
+
+    public boolean SogIsconnected() {
+        try {
+            return telnet.Isconnected();
+        } catch (Exception e) {
+            return false;
+        }
+
+    }
+
+    private String getDatetime() {
+        Locale locale = Locale.CHINA;
+        DateFormat DF = DateFormat.getDateInstance(DateFormat.MEDIUM, locale);
+        DateFormat TF = DateFormat.getTimeInstance(DateFormat.MEDIUM, locale);
+        String DateStr = DF.format(new java.util.Date()).trim();
+        String TimeStr = TF.format(new java.util.Date()).trim();
+        return DateStr + " " + TimeStr;
+    }
+
+}

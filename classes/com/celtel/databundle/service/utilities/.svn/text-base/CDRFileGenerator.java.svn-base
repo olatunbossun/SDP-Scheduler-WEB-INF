@@ -1,0 +1,60 @@
+package com.celtel.databundle.service.utilities;
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+/**
+ *
+ * @author CAkowundu
+ */
+import com.celtel.databundle.model.Activity;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpSession;
+
+public class CDRFileGenerator {
+
+    public static CDRFileGenerator getInstance(HttpSession session) throws Exception {
+    	
+
+        try {
+        	CDRFileGenerator cdrfileGenerator = (CDRFileGenerator)session.getAttribute(CDRFileGenerator.class.getName());
+                        
+                        
+
+            if (cdrfileGenerator == null) {
+
+                cdrfileGenerator = new CDRFileGenerator();
+                System.out.println("setting the attributes in the session");
+                session.setAttribute(CDRFileGenerator.class.getName(), cdrfileGenerator);
+
+            }
+
+            return cdrfileGenerator;
+        } catch (Throwable e) {
+            throw new Exception("Atttributes class not instanciated", e);
+        }
+    }
+         /**
+	 * Creates an account information in the db
+	 */
+	
+	/*public void writeActivityToFile(Activity activity)
+	{
+		
+						
+           
+            
+            Object[] params = new Object[] 
+                {activity.getServiceCode(), activity.getMsisdn(), activity.getCurrentServiceClass(), 
+                activity.getCurrentBalance(), activity.getNewServiceClass(), activity.getNewBalance(), 
+                activity.getStatusCode(), activity.getStatusMessage(), activity.getActivityDate()};
+                     
+                       
+           
+          
+            
+            
+         
+	}*/
+}

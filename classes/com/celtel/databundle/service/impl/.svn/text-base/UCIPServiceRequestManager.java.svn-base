@@ -1,0 +1,979 @@
+package com.celtel.databundle.service.impl;
+import org.dom4j.*;
+
+import com.celtel.databundle.service.utilities.Constants;
+import com.celtel.databundle.service.utilities.Utilities;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+
+public class UCIPServiceRequestManager {
+	static String request = null;
+	static String response = null;
+	static String responseCode = null;
+	  
+	XPath dataErrorXpath = null;
+	XPath businessLogicErrorXpath = null;
+	XPath responseCodeXpath = null;
+	XPath serviceClassXpath = null;
+	
+	private static String OK_RESPONSE = "params";
+    private static String ERROR_RESPONSE = "fault";
+    //private int connectionTimeout = 6000;
+    protected Map<String, String> responseMap = null;
+	
+	//private static Logger logger = null;
+	
+	public UCIPServiceRequestManager(){
+		//logger = Logger.getLogger(AIRServiceManager.class);
+	}
+	
+	public Map getSubscriberDetails(String msisdn) throws Exception{
+		System.out.println("Inside of the getSubscriberDetails method");
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>GetAccountDetails</methodName><params>" +
+				"<param>" +
+					"<value>" +
+						"<struct>" +
+							"<member>" +
+								"<name>originNodeType</name>" +
+								"<value><string>EXT</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originHostName</name>" +
+								"<value><string>BBUCIP</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>externalData1</name>" +
+								"<value><string>BBUIP</string></value>" +
+							"</member>"+
+							"<member>" +
+							"<name>subscriberNumberNAI</name>" +
+							"<value><i4>1</i4></value>" +
+						"</member>"+
+							"<member>" +
+								"<name>originTransactionID</name>" +
+								"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originTimeStamp</name>" +
+								"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+								"</dateTime.iso8601></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>subscriberNumber</name>" +
+								"<value><string>"+msisdn+"</string></value>" +
+							"</member>" +
+						"</struct>" +
+					"</value>"+
+				"</param></params></methodCall>";
+		
+		response = Utilities.sendRequestToAirServer(request);
+		//logger.info("The call to the AIR servers returned value = "+response);
+		//System.out.println("The call to the AIR servers returned value = "+response);
+		
+		return processUCIPResponse(response);		
+	}
+	
+	/**
+	 * This method is used to deduct the reuired airtime from the subscriber based on the amt supplied.
+	 * @param msisdn
+	 * @param amt
+	 * @return
+	 */
+	public Map updateSubscriberBalanceNew(String msisdn, float amt) throws
+	Exception{
+		
+		request = "<?xml version=\"1.0\" ?>"+
+					"<methodCall><methodName>UpdateBalanceAndDate</methodName><params>"+
+					    "<param>"+
+					      "<value>"+
+					        "<struct>"+
+					          "<member>"+
+					            "<name>originNodeType</name>"+
+						            "<value><string>EXT</string></value>"+
+					          "</member>"+
+					          "<member>"+
+					            "<name>originHostName</name>"+
+						            "<value><string>EMERDBAPP</string></value>"+
+					          "</member>"+
+					          "<member>"+
+					            "<name>originTransactionID</name>"+
+						            "<value><string>"+Utilities.getTransactionId()+"</string></value>"+
+					          "</member>"+
+					          "<member>"+
+					            "<name>originTimeStamp</name>"+
+						            "<value>"+Utilities.getISO8601DateTime()+"</value>"+
+					          "</member>"+
+					          "<member>"+
+					            "<name>subscriberNumberNAI</name>"+
+						            "<value><int>1</int></value>"+
+					          "</member>"+
+					          "<member>"+
+					            "<name>subscriberNumber</name>"+
+						            "<value><string>"+msisdn+"</string></value>"+
+					          "</member>"+
+					          "<member>"+
+					            "<name>transactionCurrency</name>"+
+						            "<value><string>NGN</string></value>"+
+					          "</member>"+
+					          "<member>"+
+					            "<name>adjustmentAmountRelative</name>"+
+						            "<value><string>"+amt+"</string></value>"+
+					          "</member>"+
+					          "<member>"+
+					            "<name>externalData1</name>"+
+						            "<value><string>I_SME</string></value>"+
+					          "</member>"+
+					        "</struct>"+
+					      "</value>"+
+					   "</param>"+
+					 "</params>"+
+					"</methodCall>";
+		response = Utilities.sendRequestToAirServer(request);
+		
+		return processUCIPResponse(response);
+		
+	}
+	
+	
+	/**
+	 * This method is used to update a subscriber's dedicated account value based on the amt
+	 * @param msisdn
+	 * @param amt
+	 * @return
+	 */
+/*	public Map updateSubscriberDedicatedAccount(String msisdn,String amount, String da_value, 
+			int da,String da_Acct_Expiry, int validity) 
+	throws 	Exception{
+		System.out.println("Inside of the updateSubscriberDedicatedAccount method");
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>UpdateBalanceAndDate</methodName><params>" +
+				"<param>" +
+					"<value>" +
+						"<struct>" +
+							"<member>" +
+								"<name>originNodeType</name>" +
+								"<value><string>EXT</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originHostName</name>" +
+								"<value><string>BBUCIP</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>externalData1</name>" +
+								"<value><string>BBUIP</string></value>" +
+							"</member>"+
+							"<member>" +
+							"<name>subscriberNumberNAI</name>" +
+							"<value><i4>1</i4></value>" +
+						"</member>"+
+							"<member>" +
+								"<name>originTransactionID</name>" +
+								"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originTimeStamp</name>" +
+								"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+								"</dateTime.iso8601></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>transactionCurrency</name>" +
+								"<value><string>"+Constants.CURRENCY+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>subscriberNumber</name>" +
+								"<value><string>"+msisdn+"</string></value>" +
+							"</member>" +
+							"<member>" +
+							"<name>adjustmentAmountRelative</name>" +
+							"<value><string>"+amount+"</string></value>" +
+						"</member>" +
+							"<member>" +
+								"<name>dedicatedAccountUpdateInformation</name>" +
+								"<value>" +
+									"<array><data><value>"+
+										"<struct>" +
+											"<member>" +
+												"<name>dedicatedAccountID</name>" +
+												"<value><i4>"+da+"</i4></value>"+
+											"</member>" +
+											"<member>" +
+												"<name>adjustmentAmountRelative</name>" +
+												"<value><string>"+da_value+"</string></value>"+
+											"</member>" +
+											"<member>" +
+												"<name>expiryDate</name>" +
+												"<value><dateTime.iso8601>"+Utilities.getISO8601DateTimeForMsisdn(da_Acct_Expiry,validity)+
+											"</dateTime.iso8601></value>" +
+										"</member>" +
+										"</struct></value>" +
+										"</data></array>"+
+								"</value>"+
+							"</member>" +
+							
+						"</struct>" +
+					"</value>"+
+				"</param></params></methodCall>";
+		response = Utilities.sendRequestToAirServer(request);
+		//logger.info("The call to the AIR servers returned value = "+response);
+		//System.out.println("The call to the AIR servers returned value = "+response);
+		
+		return processUCIPResponse(response);		
+	}*/
+	
+	
+	public Map updateSubscriberDedicatedAccount(String msisdn, String amt, String DA, String expiryDate, 
+			int validity) 
+	throws Exception{
+		System.out.println("Inside of the updateSubscriberDedicatedAccount method");
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>UpdateBalanceAndDate</methodName><params>" +
+				"<param>" +
+					"<value>" +
+						"<struct>" +
+							"<member>" +
+								"<name>originNodeType</name>" +
+								"<value><string>EXT</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originHostName</name>" +
+								"<value><string>BBUCIP</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>externalData1</name>" +
+								"<value><string>BBUIP</string></value>" +
+							"</member>"+
+							"<member>" +
+							"<name>subscriberNumberNAI</name>" +
+							"<value><i4>1</i4></value>" +
+						"</member>"+
+							"<member>" +
+								"<name>originTransactionID</name>" +
+								"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originTimeStamp</name>" +
+								"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+								"</dateTime.iso8601></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>transactionCurrency</name>" +
+								"<value><string>"+Constants.CURRENCY+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>subscriberNumber</name>" +
+								"<value><string>"+msisdn+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>dedicatedAccountUpdateInformation</name>" +
+								"<value>" +
+									"<array><data><value>"+
+										"<struct>" +
+											"<member>" +
+												"<name>dedicatedAccountID</name>" +
+												"<value><i4>"+DA+"</i4></value>"+
+											"</member>" +
+											"<member>" +
+												"<name>adjustmentAmountRelative</name>" +
+												"<value><string>"+amt+"</string></value>"+
+											"</member>" +
+											"<member>" +
+												"<name>adjustmentDateRelative</name>" +
+												"<value><i4>"+validity+
+											"</i4></value>" +
+										"</member>" +
+										"</struct></value>" +
+										"</data></array>"+
+								"</value>"+
+							"</member>" +
+							
+						"</struct>" +
+					"</value>"+
+				"</param></params></methodCall>";
+		response = Utilities.sendRequestToAirServer(request);
+		//logger.info("The call to the AIR servers returned value = "+response);
+		//System.out.println("The call to the AIR servers returned value = "+response);
+		
+		return processUCIPResponse(response);		
+	}
+	
+	
+	public Map updateSubscriberDedicatedAccount(String msisdn, String amt, int validity) 
+	throws Exception{
+		System.out.println("Inside of the updateSubscriberDedicatedAccount method");
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>UpdateBalanceAndDate</methodName><params>" +
+				"<param>" +
+					"<value>" +
+						"<struct>" +
+							"<member>" +
+								"<name>originNodeType</name>" +
+								"<value><string>EXT</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originHostName</name>" +
+								"<value><string>BBUCIP</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>externalData1</name>" +
+								"<value><string>BBUIP</string></value>" +
+							"</member>"+
+							"<member>" +
+							"<name>subscriberNumberNAI</name>" +
+							"<value><i4>1</i4></value>" +
+						"</member>"+
+							"<member>" +
+								"<name>originTransactionID</name>" +
+								"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originTimeStamp</name>" +
+								"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+								"</dateTime.iso8601></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>transactionCurrency</name>" +
+								"<value><string>"+Constants.CURRENCY+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>subscriberNumber</name>" +
+								"<value><string>"+msisdn+"</string></value>" +
+							"</member>" +
+							
+							"<member>" +
+								"<name>dedicatedAccountUpdateInformation</name>" +
+								"<value>" +
+									"<array>" +
+										"<data>" +
+											"<value>"+
+												"<struct>" +
+													"<member>" +
+														"<name>dedicatedAccountID</name>" +
+														"<value><i4>10</i4></value>"+
+													"</member>" +
+													"<member>" +
+														"<name>adjustmentAmountRelative</name>" +
+														"<value><string>"+amt+"</string></value>"+
+													"</member>" +
+													"<member>" +
+														"<name>expiryDate</name>" +
+														"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime(validity)+
+														"</dateTime.iso8601></value>" +
+													"</member>" +
+												"</struct>" +
+											"</value>" +
+										"</data>" +
+									"</array>"+
+								"</value>"+
+							"</member>" +							
+						"</struct>" +
+					"</value>"+
+				"</param></params></methodCall>";
+		//System.out.println(request);System.exit(0);
+		response = Utilities.sendRequestToAirServer(request);
+		//logger.info("The call to the AIR servers returned value = "+response);
+		//System.out.println("The call to the AIR servers returned value = "+response);
+		
+		return processUCIPResponse(response);		
+	}
+	
+	
+	public Map updateSubscriberServiceClass(String msisdn,String serviceClass) throws Exception{
+		System.out.println("Inside of the updateSubscriberServiceClass method");
+		
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>UpdateServiceClass</methodName><params>" +
+				"<param>" +
+					"<value>" +
+						"<struct>" +
+							"<member>" +
+								"<name>originNodeType</name>" +
+								"<value><string>EXT</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originHostName</name>" +
+								"<value><string>BBUCIP</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>externalData1</name>" +
+								"<value><string>BBUIP</string></value>" +
+							"</member>"+
+							"<member>" +
+							"<name>subscriberNumberNAI</name>" +
+							"<value><i4>1</i4></value>" +
+							"</member>"+
+							"<member>" +
+								"<name>serviceClassAction</name>" +
+								"<value>SetOriginal</value>" +
+							"</member>"+
+							"<member>" +
+								"<name>serviceClassNew</name>" +
+								"<value><i4>"+serviceClass+"</i4></value>" +
+							"</member>"+
+							"<member>" +
+								"<name>originTransactionID</name>" +
+								"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originTimeStamp</name>" +
+								"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+								"</dateTime.iso8601></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>subscriberNumber</name>" +
+								"<value><string>"+msisdn+"</string></value>" +
+							"</member>" +
+						"</struct>" +
+					"</value>"+
+				"</param></params></methodCall>";
+		System.out.println(request);
+		response = Utilities.sendRequestToAirServer(request);
+		//logger.info("The call to the AIR servers returned value = "+response);
+		//System.out.println("The call to the AIR servers returned value = "+response);
+		
+		return processUCIPResponse(response);		
+	}
+	
+	
+	public Map updateSubscriberBalance(String msisdn, String amount) throws Exception{
+		System.out.println("Inside of the getSUbscriberDetails method");
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>UpdateBalanceAndDate</methodName><params>" +
+				"<param>" +
+					"<value>" +
+						"<struct>" +
+							"<member>" +
+								"<name>originNodeType</name>" +
+								"<value><string>EXT</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originHostName</name>" +
+								"<value><string>BBUCIP</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>externalData1</name>" +
+								"<value><string>BBUIP</string></value>" +
+							"</member>"+
+							"<member>" +
+							"<name>subscriberNumberNAI</name>" +
+							"<value><i4>1</i4></value>" +
+						"</member>"+
+							"<member>" +
+								"<name>originTransactionID</name>" +
+								"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originTimeStamp</name>" +
+								"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+								"</dateTime.iso8601></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>transactionCurrency</name>" +
+								"<value><string>"+Constants.CURRENCY+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>subscriberNumber</name>" +
+								"<value><string>"+msisdn+"</string></value>" +
+							"</member>" +
+							"<member>" +
+							"<name>adjustmentAmountRelative</name>" +
+							"<value><string>"+amount+"</string></value>" +
+						"</member>" +
+						"</struct>" +
+					"</value>"+
+				"</param></params></methodCall>";
+		response = Utilities.sendRequestToAirServer(request);
+		//logger.info("The call to the AIR servers returned value = "+response);
+		//System.out.println("The call to the AIR servers returned value = "+response);
+		
+		return processUCIPResponse(response);		
+	}
+	
+	public Map getSubscriberBalance(String msisdn) throws Exception{
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>GetBalanceAndDate</methodName><params>" +
+				"<param>" +
+					"<value>" +
+						"<struct>" +
+							"<member>" +
+								"<name>originNodeType</name>" +
+								"<value><string>EXT</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originHostName</name>" +
+								"<value><string>BBUCIP</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>externalData1</name>" +
+								"<value><string>BBUIP</string></value>" +
+							"</member>"+
+							"<member>" +
+							"<name>subscriberNumberNAI</name>" +
+							"<value><i4>1</i4></value>" +
+						"</member>"+
+							"<member>" +
+								"<name>originTransactionID</name>" +
+								"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originTimeStamp</name>" +
+								"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+								"</dateTime.iso8601></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>subscriberNumber</name>" +
+								"<value><string>"+msisdn+"</string></value>" +
+							"</member>" +
+						"</struct>" +
+					"</value>"+
+				"</param></params></methodCall>";
+		
+		response = Utilities.sendRequestToAirServer(request);
+		
+		
+		return processUCIPResponse(response);		
+	}
+	
+	/**
+	 * This methed is used to update a particular service offering for a subscriber. The msisdn and service 
+	 * offering to be updated is supplied as parameters
+	 * @param msisdn
+	 * @param serviceOffering
+	 * @param flagStatus
+	 * @return Map containing the formatted response from the Air servers.
+	 */
+	public Map updateSubscriberServiceOffering(String msisdn,int serviceOffering,int flagStatus){
+		//String resp = "";
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>UpdateSubscriberSegmentation</methodName><params>" +
+				"<param>" +
+					"<value>" +
+						"<struct>" +
+							"<member>" +
+								"<name>originNodeType</name>" +
+								"<value><string>EXT</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originHostName</name>" +
+								"<value><string>BBUCIP</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>externalData1</name>" +
+								"<value><string>BBUIP</string></value>" +
+							"</member>"+
+							"<member>" +
+								"<name>originTransactionID</name>" +
+								"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originTimeStamp</name>" +
+								"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+								"</dateTime.iso8601></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>subscriberNumberNAI</name>" +
+								"<value><i4>1</i4></value>" +
+							"</member>"+
+							"<member>" +
+								"<name>subscriberNumber</name>" +
+								"<value><string>"+msisdn+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>serviceOfferings</name>" +
+								"<value>" +
+									"<array><data><value>"+
+										"<struct>" +
+											"<member>" +
+												"<name>serviceOfferingID</name>" +
+												"<value><i4>"+serviceOffering+"</i4></value>"+
+											"</member>" +
+											"<member>" +
+												"<name>serviceOfferingActiveFlag</name>" +
+												"<value><boolean>"+flagStatus+"</boolean></value>"+
+											"</member>" +
+										"</struct></value>" +
+									"</data></array>"+
+								"</value>"+
+							"</member>" +
+						"</struct>" +
+					"</value>"+
+				"</param></params></methodCall>";
+		
+		response = Utilities.sendRequestToAirServer(request);
+				
+		return processUCIPResponse(response);		
+	}
+	
+	
+	public Map updateSubscriberCommunity(String msisdn,ArrayList<Integer> currentComm,ArrayList<Integer> newComm){
+		
+		Iterator<Integer> currComm = currentComm.iterator();
+		Iterator<Integer> newCurr = newComm.iterator();
+		String newParameter="",oldParameter = "";
+		
+		while (currComm.hasNext()) {
+			Integer element = currComm.next();
+			oldParameter += "<value><struct><member><name>communityID</name><value><i4>"+element
+			+"</i4></value></member></struct></value>";			
+		}
+		
+		while (newCurr.hasNext()) {
+			Integer element = newCurr.next();
+			newParameter += "<value><struct><member><name>communityID</name><value><i4>"+element
+			+"</i4></value></member></struct></value>";			
+		}
+		
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>UpdateCommunityList</methodName><params>" +
+		"<param>" +
+			"<value>" +
+				"<struct>" +
+					"<member>" +
+						"<name>originNodeType</name>" +
+						"<value><string>EXT</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>originHostName</name>" +
+						"<value><string>BBUCIP</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>externalData1</name>" +
+						"<value><string>BBUIP</string></value>" +
+					"</member>"+
+					"<member>" +
+						"<name>originTransactionID</name>" +
+						"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>originTimeStamp</name>" +
+						"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+						"</dateTime.iso8601></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>subscriberNumberNAI</name>" +
+						"<value><i4>1</i4></value>" +
+					"</member>"+
+					"<member>" +
+						"<name>subscriberNumber</name>" +
+						"<value><string>"+msisdn+"</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>communityInformationCurrent</name>" +
+						"<value>" +
+							"<array><data>"+
+							oldParameter.trim()
+							+"</data></array>"+
+						"</value>"+
+					"</member>" +
+					"<member>" +
+					"<name>communityInformationNew</name>" +
+					"<value>" +
+						"<array><data>"+
+						newParameter.trim()
+						+"</data></array>"+
+					"</value>"+
+				"</member>" +
+				"</struct>" +
+			"</value>"+
+		"</param></params></methodCall>";
+		
+		response = Utilities.sendRequestToAirServer(request);
+		
+		return processUCIPResponse(response);
+	}
+	
+	public Map updateSubscriberCommunity(String msisdn,ArrayList<Integer> newComm){
+		
+		Iterator<Integer> newCurr = newComm.iterator();
+		String newParameter="";
+		
+		while (newCurr.hasNext()) {
+			Integer element = newCurr.next();
+			newParameter += "<value><struct><member><name>communityID</name><value><i4>"+element
+			+"</i4></value></member></struct></value>";			
+		}
+		
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>UpdateCommunityList</methodName><params>" +
+		"<param>" +
+			"<value>" +
+				"<struct>" +
+					"<member>" +
+						"<name>originNodeType</name>" +
+						"<value><string>EXT</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>originHostName</name>" +
+						"<value><string>BBUCIP</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>externalData1</name>" +
+						"<value><string>BBUIP</string></value>" +
+					"</member>"+
+					"<member>" +
+						"<name>originTransactionID</name>" +
+						"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>originTimeStamp</name>" +
+						"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+						"</dateTime.iso8601></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>subscriberNumberNAI</name>" +
+						"<value><i4>1</i4></value>" +
+					"</member>"+
+					"<member>" +
+						"<name>subscriberNumber</name>" +
+						"<value><string>"+msisdn+"</string></value>" +
+					"</member>" +
+					"<member>" +
+					"<name>communityInformationNew</name>" +
+					"<value>" +
+						"<array><data>"+
+						newParameter.trim()
+						+"</data></array>"+
+					"</value>"+
+				"</member>" +
+				"</struct>" +
+			"</value>"+
+		"</param></params></methodCall>";
+		
+		response = Utilities.sendRequestToAirServer(request);
+		
+		return processUCIPResponse(response);
+	}
+	
+	
+public Map newSubscriberCommunity(String msisdn,String newComm){
+		
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>UpdateCommunityList</methodName><params>" +
+		"<param>" +
+			"<value>" +
+				"<struct>" +
+					"<member>" +
+						"<name>originNodeType</name>" +
+						"<value><string>EXT</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>originHostName</name>" +
+						"<value><string>BBUCIP</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>externalData1</name>" +
+						"<value><string>BBUIP</string></value>" +
+					"</member>"+
+					"<member>" +
+						"<name>originTransactionID</name>" +
+						"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>originTimeStamp</name>" +
+						"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+						"</dateTime.iso8601></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>subscriberNumberNAI</name>" +
+						"<value><i4>1</i4></value>" +
+					"</member>"+
+					"<member>" +
+						"<name>subscriberNumber</name>" +
+						"<value><string>"+msisdn+"</string></value>" +
+					"</member>" +
+					"<member>" +
+						"<name>communityInformationNew</name>" +
+							"<value>" +
+								"<array><data><value>"+
+									"<struct>" +
+										"<member>" +
+											"<name>communityID</name>" +
+											"<value><i4>"+newComm+"</i4></value>"+
+										"</member>" +								
+									"</struct></value>" +
+								"</data></array>"+
+							"</value>"+
+				"</member>" +
+				"</struct>" +
+			"</value>"+
+		"</param></params></methodCall>";
+		
+		response = Utilities.sendRequestToAirServer(request);
+		
+		return processUCIPResponse(response);
+	}
+	
+	
+	public Map updateSubscriberServiceOffering(String msisdn,int firstService,int firstFlag,int secondService,int secondFlag){
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>UpdateSubscriberSegmentation</methodName><params>" +
+				"<param>" +
+					"<value>" +
+						"<struct>" +
+							"<member>" +
+								"<name>originNodeType</name>" +
+								"<value><string>EXT</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originHostName</name>" +
+								"<value><string>BBUCIP</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>externalData1</name>" +
+								"<value><string>BBUIP</string></value>" +
+							"</member>"+
+							"<member>" +
+								"<name>originTransactionID</name>" +
+								"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originTimeStamp</name>" +
+								"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+								"</dateTime.iso8601></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>subscriberNumberNAI</name>" +
+								"<value><i4>1</i4></value>" +
+							"</member>"+
+							"<member>" +
+								"<name>subscriberNumber</name>" +
+								"<value><string>"+msisdn+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>serviceOfferings</name>" +
+								"<value>" +
+									"<array><data><value>"+
+										"<struct>" +
+											"<member>" +
+												"<name>serviceOfferingID</name>" +
+												"<value><i4>"+firstService+"</i4></value>"+
+											"</member>" +
+											"<member>" +
+												"<name>serviceOfferingActiveFlag</name>" +
+												"<value><boolean>"+firstFlag+"</boolean></value>"+
+											"</member>" +
+										"</struct></value>" +
+										"<value>"+
+										"<struct>" +
+											"<member>" +
+												"<name>serviceOfferingID</name>" +
+												"<value><i4>"+secondService+"</i4></value>"+
+											"</member>" +
+											"<member>" +
+												"<name>serviceOfferingActiveFlag</name>" +
+												"<value><boolean>"+secondFlag+"</boolean></value>"+
+											"</member>" +
+										"</struct></value>"+
+									"</data></array>"+
+								"</value>"+
+							"</member>" +
+						"</struct>" +
+					"</value>"+
+				"</param></params></methodCall>";
+		
+		response = Utilities.sendRequestToAirServer(request);
+		//logger.info("The call to the AIR servers returned value = "+response);
+		//System.out.println("The call to the AIR servers returned value = "+response);
+		//System.out.println("The method processUCIPResponse has details "+processUCIPResponse(response));
+		
+		//get the value of responseCode in the server response and assign it to the resp variable.
+		
+		return processUCIPResponse(response);		
+	}
+	
+	private Map<String, String> processUCIPResponse(String response) {
+	    Document document = null;
+	    //HashMap responseMap = null;
+	    try {
+	        document = DocumentHelper.parseText(response);
+	    } catch (DocumentException e) {
+	        // TODO Auto-generated catch block
+	        e.printStackTrace();
+	    }
+	    responseMap = new HashMap<String, String>();
+	    Node node = document.selectSingleNode("/methodResponse/child::node()");
+	    if (node.getName().equals(OK_RESPONSE)) {
+	        List<Node> nodes = document.selectNodes("/methodResponse/params/param/value/struct/member");
+	        Iterator<Node> iterator = nodes.iterator();
+	        while (iterator.hasNext()) {
+		        Node n = iterator.next();
+		        Node nodeName = document.selectSingleNode(n.getUniquePath() + "/name");
+		        Node nodeValue = document.selectSingleNode(n.getUniquePath() + "/value/child::node()");
+	
+		        if (nodeValue.getName().equals("array")) {
+		            List<Node> arrayNodes = document.selectNodes(nodeValue.getUniquePath() + "/data/value/struct/member");
+		            Iterator<Node> e = arrayNodes.iterator();
+		            while (e.hasNext()) {
+			            Node an = e.next();
+			            Node anodeName = document.selectSingleNode(an.getUniquePath() + "/name");
+			            Node anodeValue = document.selectSingleNode(an.getUniquePath() + "/value/child::node()");
+			            if (responseMap.containsKey(anodeName.getText())) {
+			                String s = responseMap.get(anodeName.getText());
+			                responseMap.put(anodeName.getText(), s + "," + anodeValue.getText());
+			            } else {
+			                responseMap.put(anodeName.getText(), anodeValue.getText());
+			            }
+		            }
+		        } else {
+		            if (responseMap.containsKey(nodeName.getText())) {
+			            String s = responseMap.get(nodeName.getText());
+			            responseMap.put(nodeName.getText(), nodeValue.getText());
+		            } else {
+		            	responseMap.put(nodeName.getText(), nodeValue.getText());
+		            }
+		            responseMap.put(nodeName.getText(), nodeValue.getText());
+		        }
+	        }
+	    } else if (node.getName().equals(ERROR_RESPONSE)) {
+	        List<Node> nodes = document.selectNodes("/methodResponse/fault/value/struct/member");
+	        Iterator<Node> iterator = nodes.iterator();
+	        while (iterator.hasNext()) {
+	        Node n = iterator.next();
+	        Node nodeName = document.selectSingleNode(n.getUniquePath() + "/name");
+	        Node nodeValue = document.selectSingleNode(n.getUniquePath() + "/value/child::node()");
+	        responseMap.put(nodeName.getText(), nodeValue.getText());
+	        }
+	    } else {
+	        System.out.println("Fatal error,unkown response !");
+	    }
+	    return responseMap;
+	    }
+	
+	public Map getSubscriberAccumulators(String msisdn){
+		
+		request = "<?xml version=\"1.0\"?><methodCall><methodName>GetAccumulators</methodName><params>" +
+				"<param>" +
+					"<value>" +
+						"<struct>" +
+							"<member>" +
+								"<name>originNodeType</name>" +
+								"<value><string>EXT</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originHostName</name>" +
+								"<value><string>BBUCIP</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>externalData1</name>" +
+								"<value><string>BBUIP</string></value>" +
+							"</member>"+
+							"<member>" +
+								"<name>originTransactionID</name>" +
+								"<value><string>"+Utilities.getTransactionId()+"</string></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>originTimeStamp</name>" +
+								"<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+
+								"</dateTime.iso8601></value>" +
+							"</member>" +
+							"<member>" +
+								"<name>subscriberNumberNAI</name>" +
+								"<value><i4>1</i4></value>" +
+							"</member>"+
+							"<member>" +
+								"<name>subscriberNumber</name>" +
+								"<value><string>"+msisdn+"</string></value>" +
+							"</member>" +							
+						"</struct>" +
+					"</value>"+
+				"</param></params></methodCall>";
+		
+		response = Utilities.sendRequestToAirServer(request);
+		//logger.info("The call to the AIR servers returned value = "+response);
+		//System.out.println("The call to the AIR servers returned value = "+response);
+		
+		return processUCIPResponse(response);		
+	}
+}

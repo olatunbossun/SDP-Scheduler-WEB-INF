@@ -1,0 +1,218 @@
+package com.celtel.databundle.model;
+
+import java.io.Serializable;
+//import org.apache.commons.lang.*;
+import java.util.*;
+//import java.sql.*;
+
+
+/**
+ * This class serves as VO for all activity related tasks in this project
+ *
+ * <p><a href="Activity.java.html"><i>View Source</i></a>
+ *
+ * @author <a href="mailto:onu.p@ng.celtel.com">Paul Onu</a>
+ *         
+ *
+ */
+
+public class Activity extends BaseObject{
+	
+	private static final long serialVersionUID = 3832626162173359411L;
+	
+
+	 	private Integer activityId;
+	    private String serviceCode = null;
+	    private String msisdn = null;
+	    private String currentServiceClass = null;
+	    private Double currentBalance;
+	    private Double newBalance = null;
+	    private String statusCode = null;
+	    private String statusMessage = null;
+	    private Date activityDate = null;
+	    
+	   
+	    private String currentServiceOfferingId = null;
+	    private String currentAccumulatorId = null;
+	    private String currentAccumulatorValue = null;
+	    private String proposedServiceOfferingId = null;
+	    private String newServiceOfferingId = null;
+	    private String newAccumulatorId = null;
+	    private String newAccumulatorValue = null;
+
+	
+	
+	
+	
+	    public void setActivityId(Integer activityId){
+	        this.activityId = activityId;
+	    }
+	    
+	    public Integer getActivityId(){
+	        return this.activityId;
+	    }
+	    
+	    public void setServiceCode(String serviceCode){
+	        this.serviceCode = serviceCode;
+	    }
+	    
+	    public String getServiceCode(){
+	        return this.serviceCode;
+	    }
+	    
+	    public void setMsisdn(String msisdn){
+	        this.msisdn = msisdn;
+	    }
+	    
+	    public String getMsisdn(){
+	        return this.msisdn;
+	    }
+	    
+	    public void setCurrentServiceClass(String currentServiceClass){
+	        this.currentServiceClass = currentServiceClass;
+	    }
+	    
+	    public String getCurrentServiceClass(){
+	        return this.currentServiceClass;
+	    }
+	    
+	    public void setCurrentBalance(Double currentBalance){
+	        this.currentBalance = currentBalance;
+	    }
+	    
+	    public Double getCurrentBalance(){
+	        return this.currentBalance;
+	    }
+	    
+	    public void setNewBalance(Double newBalance){
+	        this.newBalance = newBalance;
+	    }
+	    
+	    public Double getNewBalance(){
+	        return this.newBalance;
+	    }
+	    
+	    public void setStatusCode(String statusCode){
+	        this.statusCode = statusCode;
+	    }
+	    
+	    public String getStatusCode(){
+	        return this.statusCode;
+	    }
+	    
+	    public void setStatusMessage(String statusMessage){
+	        this.statusMessage = statusMessage;
+	    }
+	    
+	    public String getStatusMessage(){
+	        return this.statusMessage;
+	    }
+	    
+	    	    
+	    public void setActivityDate(Date activityDate){
+	       this.activityDate = activityDate;
+	    }
+	    
+	    public Date getActivityDate(){
+	        return this.activityDate;
+	    }
+
+		/**
+		 * @return Returns the currentAccumulatorId.
+		 */
+		public String getCurrentAccumulatorId() {
+			return currentAccumulatorId;
+		}
+
+		/**
+		 * @param currentAccumulatorId The currentAccumulatorId to set.
+		 */
+		public void setCurrentAccumulatorId(String currentAccumulatorId) {
+			this.currentAccumulatorId = currentAccumulatorId;
+		}
+
+		/**
+		 * @return Returns the currentAccumulatorValue.
+		 */
+		public String getCurrentAccumulatorValue() {
+			return currentAccumulatorValue;
+		}
+
+		/**
+		 * @param currentAccumulatorValue The currentAccumulatorValue to set.
+		 */
+		public void setCurrentAccumulatorValue(String currentAccumulatorValue) {
+			this.currentAccumulatorValue = currentAccumulatorValue;
+		}
+
+		/**
+		 * @return Returns the currentServiceOfferingId.
+		 */
+		public String getCurrentServiceOfferingId() {
+			return currentServiceOfferingId;
+		}
+
+		/**
+		 * @param currentServiceOfferingId The currentServiceOfferingId to set.
+		 */
+		public void setCurrentServiceOfferingId(String currentServiceOfferingId) {
+			this.currentServiceOfferingId = currentServiceOfferingId;
+		}
+
+		/**
+		 * @return Returns the newAccumulatorId.
+		 */
+		public String getNewAccumulatorId() {
+			return newAccumulatorId;
+		}
+
+		/**
+		 * @param newAccumulatorId The newAccumulatorId to set.
+		 */
+		public void setNewAccumulatorId(String newAccumulatorId) {
+			this.newAccumulatorId = newAccumulatorId;
+		}
+
+		/**
+		 * @return Returns the newAccumulatorValue.
+		 */
+		public String getNewAccumulatorValue() {
+			return newAccumulatorValue;
+		}
+
+		/**
+		 * @param newAccumulatorValue The newAccumulatorValue to set.
+		 */
+		public void setNewAccumulatorValue(String newAccumulatorValue) {
+			this.newAccumulatorValue = newAccumulatorValue;
+		}
+
+		/**
+		 * @return Returns the newServiceOfferingId.
+		 */
+		public String getNewServiceOfferingId() {
+			return newServiceOfferingId;
+		}
+
+		/**
+		 * @param newServiceOfferingId The newServiceOfferingId to set.
+		 */
+		public void setNewServiceOfferingId(String newServiceOfferingId) {
+			this.newServiceOfferingId = newServiceOfferingId;
+		}
+
+		/**
+		 * @return Returns the proposedServiceOfferingId.
+		 */
+		public String getProposedServiceOfferingId() {
+			return proposedServiceOfferingId;
+		}
+
+		/**
+		 * @param proposedServiceOfferingId The proposedServiceOfferingId to set.
+		 */
+		public void setProposedServiceOfferingId(String proposedServiceOfferingId) {
+			this.proposedServiceOfferingId = proposedServiceOfferingId;
+		}
+
+}

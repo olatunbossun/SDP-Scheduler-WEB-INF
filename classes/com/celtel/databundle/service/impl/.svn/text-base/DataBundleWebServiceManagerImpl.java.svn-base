@@ -1,0 +1,793 @@
+package com.celtel.databundle.service.impl;
+
+import java.util.*;
+
+import com.celtel.databundle.dao.ActivityDAO;
+import com.celtel.databundle.dao.SubscriberDAO;
+import com.celtel.databundle.model.Activity;
+import com.celtel.databundle.model.Subscriber;
+import com.celtel.databundle.service.utilities.*;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.lang.*;
+
+import jmsproducer.JmsProducerClient;
+
+
+import com.celtel.databundle.service.DataBundleServiceManager;
+
+
+
+/**
+ * This class is the business service interface implementation that ties the web service layer and the data access layer
+ *
+ * <p><a href="AccountManagerImpl.java.html"><i>View Source</i></a>
+ *
+ * @author <a href="mailto:onu.p@ng.celtel.com">Paul Onu Nduka</a>
+ *         
+ *
+ */
+
+public class DataBundleWebServiceManagerImpl implements DataBundleServiceManager{
+	
+    private Log logger = LogFactory.getLog(DataBundleWebServiceManagerImpl.class);
+    private ActivityDAO dao;
+    private Activity activity;
+    private static UcipServiceManager ucipServiceManager; 
+    private static Configuration configuration ;
+    private static Utilities utilities =null;
+    private JmsProducerClient jmsClient = new JmsProducerClient();
+    
+        double currentBalance = 0;
+	double newBalance = 0;
+	double minimumBalance = 0;
+	double migrationCharge = 0;
+	String currentServiceClass = null;
+	String newServiceClass = null;
+	String proposedServiceClass = null;	
+	
+	Map balanceResult;
+	String responseCode = "1";
+	String response = "";
+        String responseMessage = "";
+        String msisdn = "";
+   
+	//CONSTRUCTOR
+	public DataBundleWebServiceManagerImpl(){
+		
+	}
+    
+    public void setJmsProducerClient(JmsProducerClient jmsClient){
+    	this.jmsClient = jmsClient;
+    }
+    
+    public void setUtilities(Utilities utilities){
+    	this.utilities = utilities;
+    }
+	
+	public void setConfiguration(Configuration configuration){
+    	this.configuration = configuration;
+    }
+    
+    public void setActivityDAO(ActivityDAO dao)
+    {
+    	this.dao = dao;
+    }
+    public void setUcipServiceManager(UcipServiceManager ucipServiceManager){
+    	this.ucipServiceManager = ucipServiceManager;
+    }
+    
+    public String moveToTruTalkMain(String msisdn){
+    	
+    	logger.debug("MSISDN IS FROM WEB SERVICE IS   : "+msisdn);
+        logger.debug("ucipServiceManager :"+ucipServiceManager+", configuration :"+configuration);
+    	//ucipServiceManager = new UcipServiceManager();
+    	//Now do a balance request to determine subscriber current balance and service class
+    	
+    	try{    	
+            response =""; this.responseMessage ="";
+    		balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                logger.debug("YSPWEBSERVICEMANAGERIMPL SUB BALANCE :"+balanceResult.get("balance"));
+    		if (balanceResult.get("responseCode").toString().equalsIgnoreCase("0")){
+    			
+                currentBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                currentServiceClass = (String) balanceResult.get("serviceClass");
+                logger.debug("CURRENT BALANCE IS   : "+currentBalance);
+                logger.debug("CURRENT SERVICE CLASS IS   : "+currentServiceClass);
+            	  
+            	  proposedServiceClass = configuration.getString("databundle.trutalk.main.service.class.id");
+               
+                
+                if (!(currentServiceClass.indexOf(proposedServiceClass) > -1)){
+               //The guy is not migrating to the same trutalk service class (he had done it before but forgot)
+                	
+                	//Now check if the guy is in the Trutalk accept list
+                	
+                	if (configuration.getList("databundle.trutalk.service.accept.list").contains(currentServiceClass)){
+                		//Good for the guy. He is not in the service deny list
+                	 
+                		//Now check if he is in the free migration list or not.                		
+                		if (!configuration.getList("databundle.free.migration.list").contains(currentServiceClass)){
+                			//Not in free migration list.
+                			
+                			//Now check if he has enough pepper to waya the transaction
+                		//	if (currentBalance > minimumBalance){
+                				//Has enough money to perform migration
+                				
+                				//perform the operation
+                				responseCode = ucipServiceManager.changeSubscriberServiceClass(msisdn, currentServiceClass, proposedServiceClass).trim();
+                				logger.debug("RESPONSE CODE FROM MOVE TO TRUTALK MAIN IS : "+responseCode);
+                				
+                				//Now check if it was successful
+                				if (responseCode.equalsIgnoreCase("0")){
+                					
+                					//It was successful.   now there is no need to debit the guy 
+                					
+                					/**
+                					 * String responseCodea = ucipServiceManager.adjustSubscriberAccount(msisdn, new Double(migrationCharge).toString());
+                					 */
+                					
+                					//Great! now get the guys balance and then comfirm new service class for logging purposes
+                					balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                                    if (balanceResult != null)
+                                    {
+                                        newBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                                        newServiceClass = (String)balanceResult.get("serviceClass");
+                                        logger.debug("NEW SERVICE CLASS IN MOVE TO TRUTALK MAIN IS : "+newServiceClass);
+                                    }
+                				}
+                				
+                				response = getMessage(responseCode, configuration.getString("databundle.trutalk.main.code"));
+                				/**}
+                			else{
+                				//Not enough money. He is a poor man so lets send him out.
+                				//Now send insufficient balance response message
+                				
+                				                				 
+                				 *	response = configuration.getString("unity.insufficient.balance.msg");
+                				 
+                			}*/
+                		  
+                		}
+                		else{
+                	//He is in free migration List
+                            responseCode = ucipServiceManager.changeSubscriberServiceClass(msisdn, currentServiceClass, proposedServiceClass);
+              			//Now check if it was successful
+              			if (responseCode.equalsIgnoreCase("0")){
+              				////It was successful.   now there is no need to debit the guy 
+                                        	/*
+              					 * String responseCodea = ucipServiceManager.adjustSubscriberAccount(subscriber.getMsisdn().substring(1), new Double(charge).toString());
+              					 */
+              					//Great now get the guys balance and then comfirm now service class for logging purposes
+              					balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                                  if (balanceResult != null)
+                                  {
+                                      newBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                                      newServiceClass = (String)balanceResult.get("serviceClass");
+                                      logger.debug("NEW SERVICE CLASS IN MOVE TO TRUTALK MAIN IS : "+newServiceClass);
+                                  }
+              				}
+              				
+              				response = getMessage(responseCode, configuration.getString("databundle.trutalk.main.code"));                			
+                		}
+                	   
+                	 }
+                	   else{
+                		   //The baga is denied access to simply special
+                		 //  response = configuration.getString("databundle.access.denied");
+                                    this.responseCode="117";
+                                 response = this.getMessage(responseCode, "");
+                	   }
+                }
+                else{
+                	//Migrating to the same service class
+                	this.responseCode="0";
+                        response = this.getMessage("10", "");
+                }
+    		}
+                
+    	}catch(Exception e){
+            this.responseCode="125";
+            logger.debug("GOT HERE : ERROR OCCURED: ERROR CODE SELECTED IS UCIP.125.MSG");
+            response = this.getMessage(responseCode, "");
+            this.logger.error("ERROR: " +e.getStackTrace());
+    	}
+//    	Now prepare for logging activity to database
+    	Activity activity = new Activity();
+    	//activity.setServiceCode(subscriber.getMessage());
+    	activity.setMsisdn(msisdn);
+    	activity.setCurrentServiceClass(currentServiceClass);
+    	activity.setCurrentBalance(new Double(currentBalance));
+    	//activity.setNewServiceClass(newServiceClass);
+    	activity.setNewBalance(new Double(newBalance));
+    	activity.setStatusCode(responseCode);
+    	activity.setStatusMessage(response);
+    	activity.setActivityDate(Utilities.printDate());
+    	
+    	this.dao.createActivity(activity);
+    	
+    	//WRITE TO CDR FILE.
+    	
+    	//utilities.writeToCDRFile(activity);
+    	
+    	logger.debug("YSP ACTIVITY RECORD CREATED");
+    	//   SEND SMS TO SUBSCRIBER.
+        logger.debug("before calling sendSMS():responseMessage =  "+responseMessage+", response : "+response);
+    	
+    	if (this.responseCode.equalsIgnoreCase("0")) sendSMS(responseMessage,msisdn);
+    	
+    	response = "<ussd><type>3</type><msg>"+responseMessage.trim()+"</msg></ussd>";
+    	
+    	
+    	
+    	
+    	logger.debug("RESPONSE IS  : "+response);
+    	return responseCode;
+    }
+    
+    public String moveToTruTalkStage(String msisdn){
+    	
+    	logger.debug("moveToTruTalkStage,MSISDN IS FROM WEB SERVICE IS   : "+msisdn);
+    	ucipServiceManager = new UcipServiceManager();
+    	//Now do a balance request to determine subscriber current balance and service class
+    	
+    	try{    	response =""; this.responseMessage ="";	
+    		balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                logger.debug("YSPWEBSERVICEMANAGERIMPL SUB BALANCE :"+balanceResult.get("balance"));
+    		if (balanceResult.get("responseCode").toString().equalsIgnoreCase("0")){
+    			
+    		currentBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                currentServiceClass = (String) balanceResult.get("serviceClass");
+                logger.debug("CURRENT BALANCE IS   : "+currentBalance);
+                logger.debug("CURRENT SERVICE CLASS IS   : "+currentServiceClass);
+            	  
+            	  proposedServiceClass = configuration.getString("databundle.trutalk.stage.service.class.id");
+               
+                
+                if (!(currentServiceClass.indexOf(proposedServiceClass) > -1)){
+               //The guy is not migrating to the same trutalk service class (he had done it before but forgot)
+                	
+                	//Now check if the guy is in the Trutalk accept list
+                	
+                	if (configuration.getList("databundle.trutalk.service.accept.list").contains(currentServiceClass)){
+                		//Good for the guy. He is allowed the service
+                	 
+                		//Now check if he is in the free migration list or not.                		
+                		if (!configuration.getList("databundle.free.migration.list").contains(currentServiceClass)){
+                			//Not in free migration list.
+                			
+                			//Now check if he has enough pepper to waya the transaction
+                			//if (currentBalance > minimumBalance){
+                				//Has enough money to perform migration
+                				
+                				//perform the operation
+                				responseCode = ucipServiceManager.changeSubscriberServiceClass(msisdn, currentServiceClass, proposedServiceClass).trim();
+                				logger.debug("RESPONSE CODE FROM MOVE TO TRUTALK MAIN IS : "+responseCode);
+                                                //Good for the guy. He is not in the service deny list
+//                             Map viewFAFResult =    ucipServiceManager.viewFAF(msisdn);
+//                              responseCode = (String) viewFAFResult.get("responseCode");
+//                             if (responseCode.equalsIgnoreCase("0")){
+//                                java.util.ArrayList fafList = (ArrayList)viewFAFResult.get("fafList");
+//                              if(fafList.size() > 5){
+//                                  int i = fafList.size(); String fafMSISDN = "",fafNumber ="",subMSISDN="";
+//                                  if(msisdn.trim().startsWith("+")){subMSISDN=msisdn;}else if(msisdn.trim().startsWith("2")){subMSISDN="+"+ msisdn;}
+//                                Iterator fafIterator = fafList.iterator();
+//                                while(fafIterator.hasNext() && i > 5){
+//                                  fafMSISDN = (String) fafIterator.next();
+//                                 fafNumber = Utilities.validateFAFNumber(fafMSISDN.trim()); 
+//                                 logger.debug("the fafnumber to delete:"+fafNumber+", msisdn):"+"0" +msisdn.trim());
+//                                responseCode=  ucipServiceManager.delFAF(subMSISDN.substring(4), "0" + fafNumber.substring(4));
+//                                
+//                                    i = i-1;
+//                                    logger.debug("FAF MSISDN DELETED, FAFLIST REMAINS : "+ i+",responseCode : "+responseCode);
+//                                }
+//                                
+//                              }
+//                             }
+                                                //Now check if it was successful
+                				if (responseCode.equalsIgnoreCase("0")){
+                					
+                					//It was successful.   now there is no need to debit the guy 
+                					
+                					/**
+                					 * String responseCodea = ucipServiceManager.adjustSubscriberAccount(msisdn, new Double(migrationCharge).toString());
+                					 */
+                					
+                					//Great! now get the guys balance and then comfirm new service class for logging purposes
+                					balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                                    if (balanceResult != null)
+                                    {
+                                        newBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                                        newServiceClass = (String)balanceResult.get("serviceClass");
+                                        logger.debug("NEW SERVICE CLASS IN MOVE TO TRUTALK STAGE IS : "+newServiceClass);
+                                    }
+                				}
+                				
+                				response = getMessage(responseCode, configuration.getString("databundle.trutalk.stage.code"));
+                				/**	}
+                			else{
+                				//Not enough money. He is a poor man so lets send him out.
+                				//Now send insufficient balance response message
+                				
+                				                				 
+                				 *	response = configuration.getString("unity.insufficient.balance.msg");
+                				 
+                			}*/
+                		  
+                		}
+                		else{
+                			//He is in free migration List
+                			responseCode = ucipServiceManager.changeSubscriberServiceClass(msisdn, currentServiceClass, proposedServiceClass);
+              				//Now check if it was successful
+              				if (responseCode.equalsIgnoreCase("0")){
+              					////It was successful.   now there is no need to debit the guy 
+              					
+              					/*
+              					 * String responseCodea = ucipServiceManager.adjustSubscriberAccount(subscriber.getMsisdn().substring(1), new Double(charge).toString());
+              					 */
+              					//Great now get the guys balance and then comfirm now service class for logging purposes
+              					balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                                  if (balanceResult != null)
+                                  {
+                                      newBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                                      newServiceClass = (String)balanceResult.get("serviceClass");
+                                      logger.debug("NEW SERVICE CLASS IN MOVE TO TRUTALK STAGE IS : "+newServiceClass);
+                                  }
+              				}
+              				
+              				response = getMessage(responseCode, configuration.getString("databundle.trutalk.stage.code"));                			
+                		}
+                	   
+                	 }
+                	   else{
+                		   //The baga is denied access to simply special
+                		 //  response = configuration.getString("databundle.access.denied");
+                                    this.responseCode="117";
+                                    response = this.getMessage(responseCode, "");
+                	   }
+                }
+                else{
+                	//Migrating to the same service class
+                	this.responseCode="0";
+                        response = this.getMessage("10b", "");
+                }
+    		}
+                
+    	}catch(Exception e){
+            this.responseCode="125";
+            response = this.getMessage(responseCode, "");
+            this.logger.error("ERROR: " +e.getStackTrace());
+    	}
+//    	Now prepare for logging activity to database
+    	Activity activity = new Activity();
+    	//activity.setServiceCode(subscriber.getMessage());
+    	activity.setMsisdn(msisdn);
+    	activity.setCurrentServiceClass(currentServiceClass);
+    	activity.setCurrentBalance(new Double(currentBalance));
+    	//activity.setNewServiceClass(newServiceClass);
+    	activity.setNewBalance(new Double(newBalance));
+    	activity.setStatusCode(responseCode);
+    	activity.setStatusMessage(response);
+    	activity.setActivityDate(Utilities.printDate());
+    	
+    	this.dao.createActivity(activity);
+    	
+    	//WRITE TO CDR FILE.
+    	
+    	//utilities.writeToCDRFile(activity);
+    	
+    	logger.debug("YSP ACTIVITY RECORD CREATED");
+    	//   SEND SMS TO SUBSCRIBER.
+        logger.debug("before calling sendSMS():responseMessage =  "+responseMessage+", response : "+response);
+    	
+    	if (this.responseCode.equalsIgnoreCase("0")) sendSMS(responseMessage,msisdn);//sendSMS(responseMessage,msisdn);
+    	
+    	response = "<ussd><type>3</type><msg>"+responseMessage.trim()+"</msg></ussd>";
+    	
+    	
+    	
+    	
+    	logger.debug("RESPONSE IS  : "+response);
+    	return responseCode;
+    }
+    
+    public String moveToTruTextMain(String msisdn){
+    	
+    	logger.debug("moveToTruTextMain,MSISDN IS FROM WEB SERVICE IS   : "+msisdn);
+    	//Now do a balance request to determine subscriber current balance and service class
+    	
+    	try{ 
+    		response =""; this.responseMessage ="";
+    		balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                 logger.debug("YSPWEBSERVICEMANAGERIMPL SUB BALANCE :"+balanceResult.get("balance"));
+    		if (balanceResult.get("responseCode").toString().equalsIgnoreCase("0")){
+    			
+    		currentBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                currentServiceClass = (String) balanceResult.get("serviceClass");
+                logger.debug("CURRENT BALANCE IS   : "+currentBalance);
+                logger.debug("CURRENT SERVICE CLASS IS   : "+currentServiceClass);
+            	  
+            	  proposedServiceClass = configuration.getString("databundle.trutext.main.service.class.id");
+               
+                
+                if (!(currentServiceClass.indexOf(proposedServiceClass) > -1)){
+               //The guy is not migrating to the same trutext service class (he had done it before but forgot)
+                	
+                	//Now check if the guy is in the Trutext accept list
+                	
+                	if (configuration.getList("databundle.trutext.service.accept.list").contains(currentServiceClass)){
+                		//Good for the guy. He is allowed the service
+                	 
+                		//Now check if he is in the free migration list or not.                		
+                		if (!configuration.getList("databundle.free.migration.list").contains(currentServiceClass)){
+                			//Not in free migration list.
+                			
+                			//Now check if he has enough pepper to waya the transaction
+                		//	if (currentBalance > minimumBalance){
+                				//Has enough money to perform migration
+                				
+                				//perform the operation
+                				responseCode = ucipServiceManager.changeSubscriberServiceClass(msisdn, currentServiceClass, proposedServiceClass).trim();
+                				logger.debug("RESPONSE CODE FROM MOVE TO TRUTEXT MAIN IS : "+responseCode);
+                				
+                				//Now check if it was successful
+                				if (responseCode.equalsIgnoreCase("0")){
+                					
+                					//It was successful.   now there is no need to debit the guy 
+                					
+                					/**
+                					 * String responseCodea = ucipServiceManager.adjustSubscriberAccount(msisdn, new Double(migrationCharge).toString());
+                					 */
+                					
+                					//Great! now get the guys balance and then comfirm new service class for logging purposes
+                					balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                                    if (balanceResult != null)
+                                    {
+                                        newBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                                        newServiceClass = (String)balanceResult.get("serviceClass");
+                                        logger.debug("NEW SERVICE CLASS IN MOVE TO TRUTEXT MAIN IS : "+newServiceClass);
+                                    }
+                				}
+                				
+                				response = getMessage(responseCode, configuration.getString("databundle.trutext.main.code"));
+                				/** }
+                			else{
+                				//Not enough money. He is a poor man so lets send him out.
+                				//Now send insufficient balance response message
+                				
+                				               				 
+                				 *	response = configuration.getString("unity.insufficient.balance.msg");
+                				 
+                			}*/
+                		  
+                		}
+                		else{
+                			//He is in free migration List
+                			responseCode = ucipServiceManager.changeSubscriberServiceClass(msisdn, currentServiceClass, proposedServiceClass);
+              				//Now check if it was successful
+              				if (responseCode.equalsIgnoreCase("0")){
+              					////It was successful.   now there is no need to debit the guy 
+              					
+              					/*
+              					 * String responseCodea = ucipServiceManager.adjustSubscriberAccount(subscriber.getMsisdn().substring(1), new Double(charge).toString());
+              					 */
+              					//Great now get the guys balance and then comfirm now service class for logging purposes
+              					balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                                  if (balanceResult != null)
+                                  {
+                                      newBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                                      newServiceClass = (String)balanceResult.get("serviceClass");
+                                      logger.debug("NEW SERVICE CLASS IN MOVE TO TRUTEXT MAIN IS : "+newServiceClass);
+                                  }
+              				}
+              				
+              				response = getMessage(responseCode, configuration.getString("databundle.trutext.main.code"));                			
+                		}
+                	   
+                	 }
+                	   else{
+                		   //The baga is denied access to simply special
+                		 // response = configuration.getString("databundle.access.denied");
+                                     this.responseCode="117";
+                                    response = this.getMessage(responseCode, "");
+                	   }
+                }
+                else{
+                	//Migrating to the same service class
+                	this.responseCode="0";
+                        response = this.getMessage("11", "");
+                }
+    		}
+                
+    	}catch(Exception e){
+            this.responseCode="125";
+            response = this.getMessage(responseCode, "");
+            this.logger.error("ERROR: " +e.getStackTrace());
+    	}
+//    	Now prepare for logging activity to database
+    	Activity activity = new Activity();
+    	//activity.setServiceCode(subscriber.getMessage());
+    	activity.setMsisdn(msisdn);
+    	activity.setCurrentServiceClass(currentServiceClass);
+    	activity.setCurrentBalance(new Double(currentBalance));
+    	//activity.setNewServiceClass(newServiceClass);
+    	activity.setNewBalance(new Double(newBalance));
+    	activity.setStatusCode(responseCode);
+    	activity.setStatusMessage(response);
+    	activity.setActivityDate(Utilities.printDate());
+    	
+    	this.dao.createActivity(activity);
+    	
+    	//WRITE TO CDR FILE.
+    	
+    	//utilities.writeToCDRFile(activity);
+    	
+    	logger.debug("YSP ACTIVITY RECORD CREATED");
+    	//   SEND SMS TO SUBSCRIBER.
+        logger.debug("before calling sendSMS():responseMessage =  "+responseMessage+", response : "+response);
+    	
+    	if (this.responseCode.equalsIgnoreCase("0")) sendSMS(responseMessage,msisdn);//sendSMS(responseMessage,msisdn);
+    	
+    	response = "<ussd><type>3</type><msg>"+responseMessage.trim()+"</msg></ussd>";
+    	
+    	
+    	
+    	
+    	logger.debug("RESPONSE IS  : "+response);
+    	return responseCode;
+    }
+    
+    public String moveToTruTextStage(String msisdn){
+	
+	logger.debug("MSISDN IS FROM WEB SERVICE IS   : "+msisdn);
+	ucipServiceManager = new UcipServiceManager();
+	//Now do a balance request to determine subscriber current balance and service class
+	
+	try{    	response =""; this.responseMessage ="";	
+		balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                 logger.debug("YSPWEBSERVICEMANAGERIMPL SUB BALANCE :"+balanceResult.get("balance"));
+		if (balanceResult.get("responseCode").toString().equalsIgnoreCase("0")){
+			
+            currentBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+            currentServiceClass = (String) balanceResult.get("serviceClass");
+            logger.debug("CURRENT BALANCE IS   : "+currentBalance);
+            logger.debug("CURRENT SERVICE CLASS IS   : "+currentServiceClass);
+        	  
+        	  proposedServiceClass = configuration.getString("databundle.trutext.stage.service.class.id");
+           
+            
+            if (!(currentServiceClass.indexOf(proposedServiceClass) > -1)){
+           //The guy is not migrating to the same trutext service class (he had done it before but forgot)
+            	
+            	//Now check if the guy is in the Trutext deny list
+            	
+            	if (configuration.getList("databundle.trutext.service.accept.list").contains(currentServiceClass)){
+            		//Good for the guy. He is not in the service deny list
+            	 
+            		//Now check if he is in the free migration list or not.                		
+            		if (!configuration.getList("databundle.free.migration.list").contains(currentServiceClass)){
+            			//Not in free migration list.
+            			
+            			//Now check if he has enough pepper to waya the transaction
+            			//if (currentBalance > minimumBalance){
+            				//Has enough money to perform migration
+            				
+            				//perform the operation
+            				responseCode = ucipServiceManager.changeSubscriberServiceClass(msisdn, currentServiceClass, proposedServiceClass);
+            				logger.debug("RESPONSE CODE FROM MOVE TO TRUTEXT STAGE IS : "+responseCode);
+                                       //reduce his F&F list to 5 numbers
+//                                        Map viewFAFResult =    ucipServiceManager.viewFAF(msisdn);
+//                              responseCode = (String) viewFAFResult.get("responseCode");
+//                             if (responseCode.equalsIgnoreCase("0")){
+//                                   java.util.ArrayList fafList = (ArrayList)viewFAFResult.get("fafList");
+//                              if(fafList.size() > 5){
+//                                  int i = fafList.size(); String fafMSISDN = "",fafNumber ="",subMSISDN="";
+//                                  if(msisdn.trim().startsWith("+")){subMSISDN=msisdn;}else if(msisdn.trim().startsWith("2")){subMSISDN="+"+ msisdn;}
+//                                Iterator fafIterator = fafList.iterator();
+//                                while(fafIterator.hasNext() && i > 5){
+//                                  fafMSISDN = (String) fafIterator.next();
+//                                 fafNumber = Utilities.validateFAFNumber(fafMSISDN.trim()); 
+//                                 logger.debug("the fafnumber to delete:"+fafNumber+", msisdn):"+"0" +msisdn.trim());
+//                                responseCode=  ucipServiceManager.delFAF(subMSISDN.substring(4), "0" + fafNumber.substring(4));
+//                                
+//                                    i = i-1;
+//                                    logger.debug("FAF MSISDN DELETED, FAFLIST REMAINS : "+ i+",responseCode : "+responseCode);
+//                                }
+//                                
+//                              }
+//                             }
+            				
+            				//Now check if it was successful
+            				if (responseCode.equalsIgnoreCase("0")){
+            					
+            					//It was successful.   now there is no need to debit the guy 
+            					
+            					/**
+            					 * String responseCodea = ucipServiceManager.adjustSubscriberAccount(msisdn, new Double(migrationCharge).toString());
+            					 */
+            					
+            					//Great! now get the guys balance and then comfirm new service class for logging purposes
+            					balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                                if (balanceResult != null)
+                                {
+                                    newBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                                    newServiceClass = (String)balanceResult.get("serviceClass");
+                                    logger.debug("NEW SERVICE CLASS IN MOVE TO TRUTEXT STAGE IS : "+newServiceClass);
+                                }
+            				}
+            				
+            				response = getMessage(responseCode, configuration.getString("databundle.trutext.stage.code"));
+            				/** }
+            			else{
+            				//Not enough money. He is a poor man so lets send him out.
+            				//Now send insufficient balance response message
+            				
+            				               				 
+            				 *	response = configuration.getString("unity.insufficient.balance.msg");
+            				
+            			} */
+            		  
+            		}
+            		else{
+            			//He is in free migration List
+            			responseCode = ucipServiceManager.changeSubscriberServiceClass(msisdn, currentServiceClass, proposedServiceClass);
+          				//Now check if it was successful
+          				if (responseCode.equalsIgnoreCase("0")){
+          					////It was successful.   now there is no need to debit the guy 
+          					
+          					/*
+          					 * String responseCodea = ucipServiceManager.adjustSubscriberAccount(subscriber.getMsisdn().substring(1), new Double(charge).toString());
+          					 */
+          					//Great now get the guys balance and then comfirm now service class for logging purposes
+          					balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+                              if (balanceResult != null)
+                              {
+                                  newBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                                  newServiceClass = (String)balanceResult.get("serviceClass");
+                                  logger.debug("NEW SERVICE CLASS IN MOVE TO TRUTEXT STAGE IS : "+newServiceClass);
+                              }
+          				}
+          				
+          				response = getMessage(responseCode, configuration.getString("databundle.trutext.stage.code"));                			
+            		}
+            	   
+            	 }
+            	   else{
+            		   //The baga is denied access to simply special
+            		   response = configuration.getString("databundle.access.denied");
+                                    this.responseCode="117";
+                                    response = this.getMessage(responseCode, "");
+            	   }
+            }
+            else{
+            	//Migrating to the same service class
+            	this.responseCode="0";
+                        response = this.getMessage("11b", "");
+            }
+		}
+	}catch(Exception e){
+            this.responseCode="125";
+            response = this.getMessage(responseCode, "");
+            this.logger.error("ERROR: " +e.getStackTrace());
+    	}
+//    	Now prepare for logging activity to database
+    	Activity activity = new Activity();
+    	//activity.setServiceCode(subscriber.getMessage());
+    	activity.setMsisdn(msisdn);
+    	activity.setCurrentServiceClass(currentServiceClass);
+    	activity.setCurrentBalance(new Double(currentBalance));
+    	//activity.setNewServiceClass(newServiceClass);
+    	activity.setNewBalance(new Double(newBalance));
+    	activity.setStatusCode(responseCode);
+    	activity.setStatusMessage(response);
+    	activity.setActivityDate(Utilities.printDate());
+    	
+    	this.dao.createActivity(activity);
+    	
+    	//WRITE TO CDR FILE.
+    	
+    	//utilities.writeToCDRFile(activity);
+    	
+    	logger.debug("YSP ACTIVITY RECORD CREATED");
+    	//   SEND SMS TO SUBSCRIBER.
+        logger.debug("before calling sendSMS():responseMessage =  "+responseMessage+", response : "+response);
+    	
+    	if (this.responseCode.equalsIgnoreCase("0")) sendSMS(responseMessage,msisdn);//sendSMS(responseMessage,msisdn);
+    	
+    	response = "<ussd><type>3</type><msg>"+responseMessage.trim()+"</msg></ussd>";
+    	
+    	
+    	
+    	
+    	logger.debug("RESPONSE IS  : "+response);
+    	return responseCode;
+    }
+
+    public String getMessage(String responseCode, String serviceCode){
+    	
+    //	String responseMessage = null;
+        if (responseCode.equalsIgnoreCase("0")){
+            if (serviceCode.indexOf(configuration.getString("databundle.trutalk.main.code"))> -1){
+                responseMessage = configuration.getString("databundle.trutalk.main.class.msg");
+
+            }
+            else if(serviceCode.indexOf(configuration.getString("databundle.trutext.main.code"))> -1){
+                responseMessage = configuration.getString("databundle.trutext.main.class.msg");
+                
+            }else if (serviceCode.indexOf(configuration.getString("databundle.trutalk.stage.code"))> -1){
+                responseMessage = configuration.getString("databundle.trutalk.stage.class.msg");
+
+            }
+            else if(serviceCode.indexOf(configuration.getString("databundle.trutext.stage.code"))> -1){
+                responseMessage = configuration.getString("databundle.trutext.stage.class.msg");
+                }
+            }
+           else if(responseCode.equalsIgnoreCase("10")){
+            //already existing in trutalk stage
+            responseMessage = configuration.getString("databundle.trutalk.main.class.existing.msg");
+            }        
+           
+            else if(responseCode.equalsIgnoreCase("10b")){
+            //already existing in trutalk stage
+            responseMessage = configuration.getString("databundle.trutalk.stage.class.existing.msg");
+            }
+        
+            else if(responseCode.equalsIgnoreCase("11")){
+            //already existing in trutext stage
+            responseMessage = configuration.getString("databundle.trutext.main.class.existing.msg");
+             }    
+        
+            else if(responseCode.equalsIgnoreCase("11b")){
+            //already existing in trutext stage
+            responseMessage = configuration.getString("databundle.trutext.stage.class.existing.msg");
+        
+        }
+        else if(responseCode.equalsIgnoreCase("100")){
+            responseMessage = configuration.getString("ucip.100.msg");
+        }
+        else if(responseCode.equalsIgnoreCase("102")){
+            responseMessage = configuration.getString("ucip.102.msg");
+        }
+        else if(responseCode.equalsIgnoreCase("117")){
+            responseMessage = configuration.getString("ucip.117.msg");
+        }
+        else if(responseCode.equalsIgnoreCase("124")){
+            responseMessage = configuration.getString("ucip.124.msg");
+        }
+        
+        else if(responseCode.equalsIgnoreCase("125")){
+            logger.debug("GOT HERE COS UCIP ERROR 125 OCCURED. RESPONSE CODE IS  "+responseCode);
+            logger.debug("GOT HERE COS UCIP ERROR 125 OCCURED. configuration IS  "+configuration);
+            responseMessage = configuration.getString("ucip.125.msg");
+        }
+     /**   }
+        else if(responseCode.equalsIgnoreCase("126")){
+            responseMessage = configuration.getString("ucip.126.msg");
+        }*/
+        
+        return responseMessage;    
+    	   	
+    }
+    
+     public void sendSMS(String response, String msisdn){
+    	try{   		
+    	
+    logger.debug("YSP ABOUT TO SEND SMS"); 
+    logger.debug("response : "+response+","+"jms.store.url : "+configuration.getString("jms.store.url")+","+"jms.store.topic : "+configuration.getString("jms.store.topic")+","+"msisdn : "+msisdn);  
+    jmsClient.run(response,configuration.getString("jms.store.url"),configuration.getString("jms.store.topic"), msisdn);
+    logger.debug(" YSP SMS SENT TO SUBSCRIBER : " +msisdn); 
+    
+    	}catch(Exception e){
+    		e.printStackTrace();
+    	}
+}
+
+	public String handleRequest(Subscriber subscriber) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+}

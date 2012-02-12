@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate Mapping DTD 3.0//EN" 
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="com.vasconsulting.www.domain">
+	<class name="ActivityLogger" table="activitylogger">
+		<id name="id" column="id" type="string">
+			<generator class="assigned" />
+		</id>
+		<property name="description" type="string" length="255" />
+		<property name="msisdn" type="string" length="13" />
+		<property name="action" type="string" length="50" />
+		<property name="date_created" type="calendar" />
+		<property name="username" type="string" length="50" />
+		<property name="host_ip" type="string" length="50" />
+
+	</class>
+</hibernate-mapping>

@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	- DispatcherServlet application context for ISME's web tier.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p" 
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	http://www.springframework.org/schema/aop
+			http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+			http://www.springframework.org/schema/tx
+                           http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	
+	<!--
+		- The controllers are autodetected POJOs labeled with the @Controller annotation.
+	-->
+	<context:component-scan base-package="com.vasconsulting.www.controllers"/>
+	
+	<tx:annotation-driven/>
+	
+	<bean id="commandInvoker" class="com.vasconsulting.www.invokers.CommandInvoker" />
+	
+	<bean id="loadAllBillingPlanObjects" class="com.vasconsulting.www.utility.LoadAllBillingPlanObjects" 
+		init-method="getAllBillingPlanObjects">
+		<property name="xmlUtility" ref="xmlUtility" />
+	</bean>
+	
+	<bean id="billingPlanObject" class="com.vasconsulting.www.utility.BillingPlanObjectUtility" scope="request">
+		<aop:scoped-proxy/>		
+	</bean>
+	
+	<bean id="xmlUtility" class="com.vasconsulting.www.utility.XMLUtility"/>
+	
+	<bean id="ucipConnector" class="com.celtel.databundle.service.impl.UCIPServiceRequestManager" />
+	
+	<bean id="subscriberDetail" class="com.vasconsulting.www.domain.SubscriberDetail" scope="request">
+		<aop:scoped-proxy/>
+	</bean>
+	
+	<bean id="subscriberDetailRenewal" class="com.vasconsulting.www.domain.SubscriberDetail" scope="request">
+		<aop:scoped-proxy/>
+	</bean>
+		
+	
+	<bean id="hibernateUtility" class="com.vasconsulting.www.utility.HibernateUtilityImpl">
+		<property name="sessionFactory" ref="sessionFactory"/>
+		<!--<property name="sessionFactoryTabs" ref="sessionFactoryTABS"/>-->
+	</bean>
+	
+	<bean id="contextLoaderImpl" class="com.vasconsulting.www.invokers.ContextLoaderImpl"/>
+	
+	<bean id="rimUtility" class="com.vasconsulting.www.utility.RIMQueryUtil"/>
+	
+	<bean id="commandFactory" class="com.vasconsulting.www.invokers.CommandFactory"/>
+	
+	<bean id="loadProperties" class="com.vasconsulting.www.utility.LoadAllProperties"/>
+	
+	<bean id="smsService" class="com.vasconsulting.www.utility.SendSmsToKannelService" />
+	
+	
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+	  	<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+	  	<property name="url" value="jdbc:oracle:thin:@192.168.1.96:1523/kyc.ug.airtel.com" />
+	  	<property name="username" value="BBLITE" />
+	  	<property name="password" value="BBLITE" />
+	  	<property name="initialSize" value="10" />
+	 </bean>
+	 
+	 <bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+	    <property name="host" value="smtp.gmail.com"/>
+	    <property name="port" value="587"/>
+	    <property name="username" value="apps.vasconsulting@gmail.com"/>
+	    <property name="password" value="passw0rd$"/><!--passw0rd-->
+	    <property name="javaMailProperties">
+		<props>
+		    <!-- Use SMTP-AUTH to authenticate to SMTP server -->
+		    <prop key="mail.smtp.auth">true</prop>
+		    <!-- Use TLS to encrypt communication with SMTP server -->
+		    <prop key="mail.smtp.starttls.enable">true</prop>
+		</props>
+	    </property>
+	</bean>
+	 
+	 <bean id="mailMessage" class="org.springframework.mail.SimpleMailMessage">
+	    <property name="from">
+		<value><![CDATA[UGANDA SDP Application <apps.vasconsulting@gmail.com>]]></value>
+	    </property>
+	    <property name="to">
+		<value><![CDATA[System Administrator <nnamdi@vas-consulting.com>, App Support<appssupport@vas-consulting.com>]]></value>
+	    </property>
+	    <property name="subject" value="UGANDA SDP Application Alert"/>
+	</bean>
+	
+	<bean id="myEmailTaskExecutor" class="com.vasconsulting.www.utility.EmailTaskExecutor">
+		<property name="mailMessage" ref="mailMessage"/>
+		<property name="mailSender" ref="mailSender"/>
+		<property name="taskExecutor" ref="taskExecutor"/>
+	</bean>
+	
+	<bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+  		<property name="corePoolSize" value="5" />
+  		<property name="maxPoolSize" value="10" />
+  		<property name="queueCapacity" value="20" />
+	</bean>
+  
+  
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+		  <property name="dataSource" ref="dataSource" />
+		  <property name="exposeTransactionAwareSessionFactory" value="false" />	  
+		  <property name="mappingResources">
+		    <list>
+		      <value>com/vasconsulting/www/domain/SubscriberDetail.hbm.xml</value>
+		      <value>com/vasconsulting/www/domain/BillingPlan.hbm.xml</value>
+		      <value>com/vasconsulting/www/domain/TransactionLog.hbm.xml</value>
+		    </list>
+		  </property>
+		  <property name="hibernateProperties">
+		    <props>
+		      <prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+		      <prop key="hibernate.current_session_context_class">org.springframework.orm.hibernate3.SpringSessionContext</prop>
+		    </props>
+		  </property>
+	  </bean>
+	  
+	  <bean id="transactionManager" class="org.springframework.orm.hibernate3.HibernateTransactionManager"
+			p:sessionFactory-ref="sessionFactory"/>
+	  
+	 <!-- <bean id="dataSourceTabs" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+	  	<property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+	  	<property name="url" value="jdbc:oracle:thin:@192.168.1.96:1523/kyc.ug.airtel.com" />
+	  	<property name="username" value="BBLITE" />
+	  	<property name="password" value="BBLITE" />
+	  	<property name="initialSize" value="3" />
+	 </bean>
+	 
+	  <bean id="sessionFactoryTABS" class="org.springframework.orm.hibernate3.LocalSessionFactoryBean">
+		  <property name="dataSource" ref="dataSourceTabs" />
+		  <property name="exposeTransactionAwareSessionFactory" value="false" />	  		  
+		  <property name="hibernateProperties">
+		    <props>
+		      <prop key="hibernate.dialect">org.hibernate.dialect.OracleDialect</prop>
+		      <prop key="hibernate.current_session_context_class">org.springframework.orm.hibernate3.SpringSessionContext</prop>
+		    </props>
+		  </property>
+	  </bean>
+	  
+	  <bean id="transactionManagerTABS" class="org.springframework.orm.hibernate3.HibernateTransactionManager"
+			p:sessionFactory-ref="sessionFactoryTABS"/>-->
+			
+	<!--
+		Define the scheduler details in this section.
+	-->	
+
+	<bean name="notificationDailyjob" class="org.springframework.scheduling.quartz.JobDetailBean">
+		<property name="jobClass" value="com.vasconsulting.www.schedulers.NotifyExpiringBBSubscriber" />				
+	</bean>
+
+	<bean name="prepaidrenewaljob" class="org.springframework.scheduling.quartz.JobDetailBean">
+		<property name="jobClass" value="com.vasconsulting.www.schedulers.AutoRenewAllPrepBBSubscriber" />				
+	</bean>
+
+	<bean id="senderrorhourlyjob" class="org.springframework.scheduling.quartz.JobDetailBean">
+		<property name="jobClass" value="com.vasconsulting.www.schedulers.NotifyBBErrorsToAdministrator" />				
+	</bean>
+	
+	<bean id="cronTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="prepaidrenewaljob" />
+		<!-- run every hour of everyday to renew expiring subscribers -->
+		<property name="cronExpression" value="0 8 */1 * * ?" />
+	</bean>
+	
+	<bean id="cronTrigger1" class="org.springframework.scheduling.quartz.CronTriggerBean">
+                <property name="jobDetail" ref="prepaidrenewaljob" />
+                <!-- run every hour of everyday to renew expiring subscribers -->
+                <property name="cronExpression" value="0 30 7 * * ?" />
+        </bean>
+
+	<bean id="cronTrigger2" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="senderrorhourlyjob" />
+		<!-- run every hour by 20 mins past the hour to notify administrator list of failed requests from subscribers -->
+		<property name="cronExpression" value="0 20 */1 * * ?" />
+	</bean>
+
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="cronTrigger" />
+				<ref bean="cronTrigger1" />
+				<ref bean="cronTrigger2" />
+			</list>
+		</property>
+	</bean>
+
+
+
+	
+	<!-- MY COMMENT STARTS HERE -->
+	<!-- Load CXF modules from cxf.jar -->
+    <!-- <import resource="classpath:META-INF/cxf/cxf.xml" />
+    <import resource="classpath:META-INF/cxf/cxf-extension-soap.xml" />
+    <import resource="classpath:META-INF/cxf/cxf-servlet.xml" /> -->
+	
+	
+	<!-- <import resource="/config/smespring-hibernate.xml" /> -->
+		
+	<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<prop key="org.springframework.web.servlet.PageNotFound">pageNotFound</prop>
+				<prop key="org.springframework.dao.DataAccessException">dataAccessFailure</prop>
+				<prop key="org.springframework.transaction.TransactionException">dataAccessFailure</prop>
+			</props>
+		</property>
+	</bean>
+
+	
+	<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver" p:prefix="/WEB-INF/jsp/"
+			p:suffix=".jsp"/><!-- p:order="2"-->
+
+		
+	<!--
+		This bean represents the webservice class, that is exposed to the user by CFX.
+	-->
+	
+	<!-- MY COMMENT STARTS HERE -->
+	<!--  
+	<bean id="BlackberryWSEndpointImpl" class="com.vas.services.BlackberryWSEndpointImpl">
+		<property name="caiUtil" ref="caiutil" />
+		<property name="hibernateUtil" ref="hibernateUtil" />
+		<property name="gprsProvisionProxy" ref="gprsProvisionProxy" />
+		<property name="rimQueryUtil" ref="rimQueryUtil" />
+		<property name="properties" ref="properties" />
+	</bean>-->
+	
+	<!-- MY COMMENT STARTS HERE -->
+	<!-- Aegis data binding -->
+    <!-- <bean id="aegisBean"
+        class="org.apache.cxf.aegis.databinding.AegisDatabinding"
+        scope="prototype"/> 
+    <bean id="jaxws-and-aegis-service-factory"
+        class="org.apache.cxf.jaxws.support.JaxWsServiceFactoryBean"
+        scope="prototype">
+        <property name="dataBinding" ref="aegisBean"/>
+        <property name="serviceConfigurations">
+            <list>
+              <bean class="org.apache.cxf.jaxws.support.JaxWsServiceConfiguration"/>
+              <bean class="org.apache.cxf.aegis.databinding.AegisServiceConfiguration"/>
+              <bean class="org.apache.cxf.service.factory.DefaultServiceConfiguration"/> 
+            </list>
+        </property>
+    </bean>-->
+ 
+    <!-- Service endpoint -->
+    <!-- See http://incubator.apache.org/cxf/faq.html regarding CXF + Spring AOP -->
+   
+   
+   <!-- MY COMMENT STARTS HERE -->
+   <!--  <jaxws:endpoint id="bbService"
+            implementorClass="com.vasconsulting.www.services.ServiceDeliveryPlatformImpl"
+            implementor="#BlackberryWSEndpointImpl"
+            address="/bb">
+        <jaxws:serviceFactory>
+            <ref bean="jaxws-and-aegis-service-factory"/>
+        </jaxws:serviceFactory>
+    </jaxws:endpoint>-->
+
+
+	<!--
+		- Message source for this context, loaded from localized "messages_xx" files.
+		- Could also reside in the root application context, as it is generic,
+		- but is currently just used within PetClinic's web tier.
+	-->
+	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource"
+			p:basename="messages"/>
+				
+			
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+    	<property name="maxUploadSize" value="100000"/>
+	</bean>
+
+</beans>

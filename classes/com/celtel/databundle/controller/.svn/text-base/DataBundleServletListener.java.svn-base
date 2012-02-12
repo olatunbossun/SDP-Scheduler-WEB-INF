@@ -1,0 +1,110 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package com.celtel.databundle.controller;
+
+/**
+ * Web application lifecycle listener.
+ * @author CAkowundu
+ */
+import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import javax.servlet.http.HttpSessionEvent;
+import javax.servlet.http.HttpSessionListener;
+import com.celtel.databundle.controller.DataBundleCDRFileService;
+import com.celtel.databundle.controller.DataBundleMigration;
+import org.apache.commons.configuration.*;
+
+import com.celtel.databundle.service.utilities.Utilities;
+import java.util.Timer;
+
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
+import com.celtel.databundle.service.impl.UcipServiceManager;
+import com.celtel.databundle.service.impl.TelnetServiceManager;
+import com.celtel.databundle.service.impl.DataBundleWebServiceManagerImpl;
+import com.celtel.databundle.service.utilities.Utilities;
+import com.celtel.databundle.dao.ActivityDAO;
+
+public class DataBundleServletListener implements ServletContextListener,HttpSessionListener{
+    
+     ServletContext servletContext;
+     private static Configuration configuration = null;
+      private static Utilities utilities = null;
+    
+//     String ftpServerUrl;
+//    String ftpUserName;
+//    String ftpPassword ;
+//    String fileLocalLocation;
+    
+    public void contextInitialized(ServletContextEvent arg0) {
+        servletContext  = arg0.getServletContext();
+        servletContext.log("contextInitialized() method is invoked");
+      try{ 
+                   System.out.println("INITIALISING THE REMINDER IN THE LISTENER SERVLET");
+                   System.out.println("etListerner  this.configuration : "+this.configuration);
+                   
+                   
+//                   ftpServerUrl = configuration.getString("ftp.server");
+//            ftpUserName = configuration.getString("ftp.username");
+//            ftpPassword = configuration.getString("ftp.password");
+//            fileLocalLocation = configuration.getString("localhost.file.location");
+//            System.out.println("ftpServerUrl:" + ftpServerUrl+"ftpUserName"+ftpUserName+"fileLocalLocation"+fileLocalLocation);
+                   DataBundleCDRFileService databundleCDRFileService = new DataBundleCDRFileService(this.configuration,this.utilities);                   
+                   
+              //     Timer timer = new Timer();   
+                   //start immediately running every 1 hour
+                   // timer.scheduleAtFixedRate(databundleCDRFileService, 10000 , 3600000 );                  
+                   //start immediately running every 5 minutes
+               //    timer.scheduleAtFixedRate(databundleCDRFileService, 10000 , 300000); 
+                   
+                   //initialize DataBundleMigration parameters
+                   WebApplicationContext wac = WebApplicationContextUtils.getRequiredWebApplicationContext(servletContext);
+
+             DataBundleMigration.dataBundleWebServiceManagerImpl = (DataBundleWebServiceManagerImpl)wac.getBean("dataBundleWebServiceManagerImpl");
+             
+                   UcipServiceManager ucipServiceManager  = (UcipServiceManager)wac.getBean("ucipServiceManager");
+                   TelnetServiceManager telnetServiceManager = (TelnetServiceManager)wac.getBean("telnetServiceManager");
+                   DataBundleMigration.ucipServiceManager  = ucipServiceManager;
+             DataBundleMigration.dataBundleWebServiceManagerImpl.setUcipServiceManager(ucipServiceManager); 
+              // Configuration configuration = (Configuration)wac.getBean("configuration");
+               DataBundleMigration.ucipServiceManager.setConfiguration(configuration);
+               DataBundleMigration.dataBundleWebServiceManagerImpl.setConfiguration(configuration);
+               ActivityDAO activityDAO = (ActivityDAO)wac.getBean("activityDAO");
+               DataBundleMigration.dataBundleWebServiceManagerImpl.setActivityDAO(activityDAO);
+              // Utilities utilities = (Utilities)wac.getBean("utilities");
+               DataBundleMigration.dataBundleWebServiceManagerImpl.setActivityDAO(activityDAO);
+                   
+        	}catch(Exception e){
+        		e.printStackTrace();        		
+        	}
+
+        
+    }
+
+    public void contextDestroyed(ServletContextEvent arg0) {
+        servletContext.log("contextDestroyed() method is invoked");
+
+    }
+    
+     public void sessionCreated(HttpSessionEvent arg0) {
+       servletContext.log("sessionCreated() method is invoked");
+
+    }
+
+    public void sessionDestroyed(HttpSessionEvent arg0) {
+       servletContext.log("sessionDestroyed() method is invoked");
+    }
+   public void setConfiguration(Configuration configuration){
+    	this.configuration = configuration;
+    	System.out.println(" databundleServletListerner set this.configuration:" + this.configuration);
+    }  
+    
+   public void setUtilities(Utilities utilities){
+    	this.utilities = utilities;
+    	System.out.println(" databundleServletListerner set this.utilities:" + this.utilities);
+    } 
+}

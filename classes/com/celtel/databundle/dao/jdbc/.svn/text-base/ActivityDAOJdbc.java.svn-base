@@ -1,0 +1,120 @@
+package com.celtel.databundle.dao.jdbc;
+
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.List;
+
+import javax.sql.DataSource;
+
+import com.celtel.databundle.dao.ActivityDAO;
+import com.celtel.databundle.model.Activity;
+import com.celtel.databundle.dao.jdbc.ActivityDAOJdbc.ActivitiesQuery;
+import com.celtel.databundle.model.Activity;
+
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.support.JdbcDaoSupport;
+import org.springframework.jdbc.object.MappingSqlQuery;
+import org.springframework.jdbc.object.SqlUpdate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.orm.ObjectRetrievalFailureException;
+
+/**
+ * This class is the dao jdbc implementation for Activity
+ *
+ * <p><a href="Account.java.html"><i>View Source</i></a>
+ *
+ * @author <a href="mailto:onu.p@ng.celtel.com">Paul Onu</a>
+ *         
+ *
+ */
+
+public class ActivityDAOJdbc extends JdbcDaoSupport implements ActivityDAO{
+	
+		
+	/**
+	 * Creates an account information in the db
+	 */
+	
+	public void createActivity(Activity activity)
+	{
+		String sql = "INSERT INTO DataBundle_Activity (databundle_service_code, databundle_msisdn, databundle_current_service_class, databundle_current_balance," +
+            		" databundle_current_serviceoffering_id,databundle_current_accumulator_id,databundle_current_accumulator_value,"+
+            		"databundle_new_serviceoffering_id,databundle_new_accumulator_id,databundle_new_accumulator_value"+
+            		" databundle_new_balance, databundle_status_code, databundle_status_msg, databundle_activity_date)";
+                   sql += "values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            SqlUpdate su = new SqlUpdate(getDataSource(), sql);
+            
+            su.declareParameter(new SqlParameter("databundle_service_code", Types.VARCHAR));
+		su.declareParameter(new SqlParameter("databundle_msisdn", Types.VARCHAR));
+		su.declareParameter(new SqlParameter("databundle_current_service_class", Types.VARCHAR));
+		su.declareParameter(new SqlParameter("databundle_current_balance", Types.DOUBLE));
+		su.declareParameter(new SqlParameter("databundle_current_serviceoffering_id", Types.VARCHAR));
+		su.declareParameter(new SqlParameter("databundle_current_accumulator_id", Types.VARCHAR));
+		su.declareParameter(new SqlParameter("databundle_current_accumulator_value", Types.DOUBLE));		
+		su.declareParameter(new SqlParameter("databundle_new_serviceoffering_id", Types.VARCHAR));
+		su.declareParameter(new SqlParameter("databundle_new_accumulator_id", Types.VARCHAR));
+		su.declareParameter(new SqlParameter("databundle_new_accumulator_value", Types.DOUBLE));		
+        su.declareParameter(new SqlParameter("databundle_new_balance", Types.DOUBLE));
+		su.declareParameter(new SqlParameter("databundle_status_code", Types.VARCHAR));
+		su.declareParameter(new SqlParameter("databundle_status_msg", Types.VARCHAR));
+	//	su.declareParameter(new SqlParameter("databundle_activity_date", Types.DATE));
+                su.declareParameter(new SqlParameter("databundle_activity_date", Types.TIMESTAMP));
+
+          
+            
+            su.compile();
+            
+            Object[] params = new Object[] 
+                {activity.getServiceCode(), activity.getMsisdn(), activity.getCurrentServiceClass(),activity.getCurrentBalance(), 
+            	activity.getCurrentServiceOfferingId(),activity.getCurrentAccumulatorId(),activity.getCurrentAccumulatorValue(),
+            	activity.getNewServiceOfferingId(),activity.getNewAccumulatorId(),activity.getNewAccumulatorValue(),
+            	activity.getNewBalance(),activity.getStatusCode(), activity.getStatusMessage(), activity.getActivityDate()};
+                     
+                       
+            //KeyHolder keys = new GeneratedKeyHolder();
+            su.update(params);
+            //account.setAccountId(new Long(keys.getKey().longValue()));          
+           
+            //if (logger.isDebugEnabled()) {
+              //  logger.info("user's id is: " + account.getAccountId());
+            //}
+            
+            
+         
+	}
+	
+	/**
+	 * Returns a list of all account objects retrieved from the db
+	 * @return accounts
+	 */
+	
+	public List getActivities()
+	{
+		List activities = new ActivitiesQuery(getDataSource()).execute();
+		return activities;
+	}
+	
+	
+	class ActivitiesQuery extends MappingSqlQuery {
+        public ActivitiesQuery(DataSource ds) {
+            super(ds, "SELECT * FROM DataBundle_Activity");
+            compile();
+        }
+        protected Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+            Activity activity = new Activity();
+            
+            activity.setActivityId(new Integer(rs.getString("databundle_activity_id")));
+            activity.setServiceCode(rs.getString("databundle_service_code"));
+            activity.setMsisdn(rs.getString("databundle_msisdn"));
+            activity.setCurrentServiceClass(rs.getString("databundle_current_service_class"));
+            activity.setCurrentBalance(new Double(rs.getString("databundle_current_balance")));
+                                          
+            return activity;
+        }
+    }
+	
+	
+}

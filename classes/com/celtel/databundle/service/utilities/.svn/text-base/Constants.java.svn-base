@@ -1,0 +1,59 @@
+package com.celtel.databundle.service.utilities;
+
+public class Constants {
+	
+	/** Creates a new instance of Constants */
+    public Constants() {
+    }
+    
+    /** The UCIP balance request method name */
+	
+	public static final String BALANCE_REQ = "BalanceEnquiryTRequest";
+	
+	/** The UCIP Account adjustment request method name */
+	
+	public static final String ADJUSTMENT_REQ = "AdjustmentTRequest";
+
+  
+	
+	/** The UCIP originNodeType request value */
+	
+	public static final String ORIGIN_NODE_TYPE = "EXT";
+	
+	/** The UCIP SubscriberNumberNAI request value */
+	public static final int SUB_NUMBER_NAI = 1;
+	
+	/** The UCIP MessageCapability request value */
+	public static final String MSG_CAPABILITY_FLAG = "00000000";
+	
+	/** The UCIP Request User Agent */
+	
+	public static final String USER_AGENT = "VAS/2.0/1.0";
+	
+	/** The UCIP transaction currency request value */
+	
+	public static final String CURRENCY = "NGN";
+
+        /** THE UCIP FAF ACTION FOR ADD */
+  
+    public static final String FAF_ADD = "ADD";
+
+        /** The UCIP FAF Action for Delete */
+
+    public static final String FAF_DEL = "DEL";
+
+        /** Set the UCIP FAF Update request */
+
+    public static final String FAF_UPDATE_REQ = "UpdateFaFListTRequest";
+
+        /** Set the UCIP FAF List Request */
+
+    public static final String GET_FAF_REQ = "GetFaFListTRequest";
+        
+        /** Set the UCIP Service Class Update request */
+        
+    public static final String UPDATE_SC_REQ = "UpdateServiceClassTRequest";
+        
+
+
+}

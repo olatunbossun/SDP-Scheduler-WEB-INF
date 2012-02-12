@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN"
+    "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<beans>
+
+	<!-- Transaction template for Managers, from:
+         http://blog.exis.com/colin/archives/2004/07/31/concise-transaction-definitions-spring-11/ -->
+    <bean id="txProxyTemplate" abstract="true"
+        class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager" ref="transactionManager"/>
+        <property name="transactionAttributes">
+            <props>
+                <prop key="create*">PROPAGATION_REQUIRED</prop>
+                <prop key="remove*">PROPAGATION_REQUIRED</prop>
+                <prop key="update*">PROPAGATION_REQUIRED</prop>
+                <prop key="pay*">PROPAGATION_REQUIRED</prop>
+                <prop key="*">PROPAGATION_REQUIRED,readOnly</prop>
+            </props>
+        </property>
+    </bean>
+    
+     <!-- Transaction declarations for business services.  To apply a generic transaction proxy to
+         all managers, you might look into using the BeanNameAutoProxyCreator -->
+        
+    
+    <bean id="configuration" class="org.apache.commons.configuration.PropertiesConfiguration">
+                <constructor-arg value="databundle.properties" />
+    </bean>
+	
+	<bean id="databundleServletListener" class="com.celtel.databundle.controller.DataBundleServletListener">        
+           <property name="configuration" ref="configuration"/>
+		   <property name="utilities" ref="utilities"/>           
+    </bean>
+
+
+    <bean id="ucipServiceManager" class="com.celtel.databundle.service.impl.UcipServiceManager">        
+           <property name="configuration" ref="configuration"/>           
+    </bean>
+	
+	<bean id="utilities" class="com.celtel.databundle.service.utilities.Utilities">        
+           <property name="configuration" ref="configuration"/>           
+    </bean>
+    
+    <bean id="databundleServiceManager" class="com.celtel.databundle.service.impl.DataBundleServiceManagerImpl">        
+           <property name="configuration" ref="configuration"/>
+           <property name="activityDAO" ref="activityDAO"/>
+           <property name="ucipServiceManager" ref="ucipServiceManager"/>
+           <property name="subscriberDAO" ref="subscriberDAO"/>
+	       <property name="utilities" ref="utilities"/> 
+    </bean>
+    
+    <bean id="databundleWebServiceManagerImpl" class="com.celtel.databundle.service.impl.DataBundleWebServiceManagerImpl">        
+           <property name="configuration" ref="configuration"/>
+           <property name="activityDAO" ref="activityDAO"/>
+           <property name="ucipServiceManager" ref="ucipServiceManager"/>
+           <property name="utilities" ref="utilities"/>           
+    </bean>
+    
+    <bean id="databundleMigration" class="com.celtel.databundle.controller.DataBundleMigration">
+           <property name="configuration" ref="configuration"/>
+           <property name="databundleWebServiceManagerImpl" ref="databundleWebServiceManagerImpl"/>
+    </bean>
+    
+    <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+    <property name="driverClassName" value="com.mysql.jdbc.Driver" />
+    <property name="url" value="jdbc:mysql://localhost:3306/databundle" />
+    <property name="username" value="root" />
+    <property name="password" value="paul" />
+  </bean>
+
+  <bean id="transactionManager"
+  	class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+  	<property name="dataSource" ref="dataSource"/>
+  </bean>
+  
+  <!--  AccountDAO -->
+  <bean id="activityDAO" class = "com.celtel.databundle.dao.jdbc.ActivityDAOJdbc">
+  	<property name="dataSource" ref="dataSource"/>
+  </bean>
+  
+  <bean id="subscriberDAO"
+  	class = "com.celtel.databundle.dao.jdbc.SubscriberDAOJdbc">
+  	<property name="dataSource" ref="dataSource"/>
+  </bean>
+    
+</beans>
+	

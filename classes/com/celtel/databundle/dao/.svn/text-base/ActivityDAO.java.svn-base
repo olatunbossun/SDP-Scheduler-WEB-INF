@@ -1,0 +1,36 @@
+package com.celtel.databundle.dao;
+
+import com.celtel.databundle.model.Activity;
+import java.util.*;
+
+/**
+ * This class is the dao interface for the jdbc based data access layer
+ *
+ * <p><a href="ActivityDAO.java.html"><i>View Source</i></a>
+ *
+ * @author <a href="mailto:onu.p@ng.celtel.com">Paul Onu</a>
+ *         
+ *
+ */
+
+
+public interface ActivityDAO 
+{
+		
+	/**
+	 * Creates an activity record in the database 
+	 * @param activity object to be created
+	 */
+	
+	public void createActivity(Activity activity);
+	
+	/**
+	 * Retrieves a list of all activities
+	 * @return a list of populated activity objects
+	 */
+	
+	public List getActivities();
+	
+		
+
+}

@@ -1,0 +1,47 @@
+K 25
+svn:wc:ra_dav:version-url
+V 69
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/dao/jdbc
+END
+SubscriberDAOJdbc$SubscribersQuery.class
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/dao/jdbc/SubscriberDAOJdbc$SubscribersQuery.class
+END
+ActivityDAOJdbc.java
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/dao/jdbc/ActivityDAOJdbc.java
+END
+ActivityDAOJdbc$ActivitiesQuery.class
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/dao/jdbc/ActivityDAOJdbc$ActivitiesQuery.class
+END
+ActivityDAOJdbc.class
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/dao/jdbc/ActivityDAOJdbc.class
+END
+applicationContext-jdbc.xml
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/dao/jdbc/applicationContext-jdbc.xml
+END
+SubscriberDAOJdbc.java
+K 25
+svn:wc:ra_dav:version-url
+V 92
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/dao/jdbc/SubscriberDAOJdbc.java
+END
+SubscriberDAOJdbc.class
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/dao/jdbc/SubscriberDAOJdbc.class
+END

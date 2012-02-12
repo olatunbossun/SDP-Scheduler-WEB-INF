@@ -1,0 +1,29 @@
+package com.celtel.databundle.dao;
+
+import com.celtel.databundle.model.Subscriber;
+
+
+/**
+ * This class is the dao interface for the jdbc based data access layer Subscriber
+ *
+ * <p><a href="SubscriberDAO.java.html"><i>View Source</i></a>
+ *
+ * @author <a href="mailto:onu.p@ng.celtel.com">Paul Onu</a>
+ *         
+ *
+ */
+
+public interface SubscriberDAO {
+	
+	/**
+	 * Creates a subscriber master record in the database
+	 * @param subscriber
+	 */
+	public void createSubscriber(Subscriber subscriber);
+		
+	/**
+	 * Gets a specific subscriber master record in the database
+	 * @return subscriber
+	 */
+	public Subscriber getSubscriber(Subscriber subscriber);
+}

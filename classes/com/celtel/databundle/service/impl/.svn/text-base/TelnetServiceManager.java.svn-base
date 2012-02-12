@@ -1,0 +1,640 @@
+package com.celtel.databundle.service.impl;
+
+import java.util.*;
+
+import org.dom4j.Document;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+
+import org.dom4j.XPath;
+import org.dom4j.*;
+
+
+import com.celtel.databundle.service.utilities.*;
+
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import org.apache.commons.configuration.Configuration;
+
+import org.apache.commons.lang.*;
+
+public class TelnetServiceManager {
+	
+	private static Log logger = LogFactory.getLog(Utilities.class);
+	private Configuration configuration = null;
+	
+	public void setConfiguration(Configuration configuration){
+    	this.configuration = configuration;
+    }
+	
+	String request = null;
+	String response = null;
+	String responseCode = null;
+	  
+	XPath dataErrorXpath = null;
+	XPath businessLogicErrorXpath = null;
+	XPath responseCodeXpath = null;
+	XPath serviceClassXpath = null;
+	Map resp = new HashMap();
+	
+	public Map getSubscriberBalance(String msisdn) throws Exception{        
+        request = "GET:ACCOUNTINFORMATION:SubscriberNumber,"+msisdn+";" ;
+        	
+        
+      response = Utilities.sendToTelnetServer(request);//Utilities.sendToAirServer(request);
+      logger.debug("BAL RESPONSE: " +response);
+      resp = this.getResponseMap(response);
+
+      return resp;
+    }   
+    
+    public String adjustSubscriberAccountSubtract(String msisdn, String amount) throws Exception{
+        request = "SET:ACCOUNTADJUSTMENT:SubscriberNumber,"+msisdn+":Currency,0:Action,SUBTRACT:AdjustmentAmount,"+ amount+";";
+        responseCode="";
+
+      
+        response = Utilities.sendToTelnetServer(request);//Utilities.sendToAirServer(request);
+        logger.debug("ADJUST RESPONSE: " +response);
+        HashMap resp = this.getResponseMap(response);
+      if (response != null){
+        responseCode =  (String)resp.get("responseCode");
+        
+      }
+           
+      
+     return responseCode;
+        
+
+    }
+    public String adjustSubscriberAccountAdd(String msisdn, String amount) throws Exception{
+        request = "SET:ACCOUNTADJUSTMENT:SubscriberNumber,"+msisdn+":Currency,0:Action,ADD:AdjustmentAmount,"+ amount+";";
+        responseCode="";
+
+      
+        response = Utilities.sendToTelnetServer(request);//Utilities.sendToAirServer(request);
+        logger.debug("ADJUST RESPONSE: " +response);
+        HashMap resp = this.getResponseMap(response);
+      if (response != null){
+        responseCode =  (String)resp.get("responseCode");
+        
+      }
+           
+      
+     return responseCode;
+        
+
+    }
+    public String setSubscriberPSOBit(String msisdn, String serviceOfferingId,String serviceOfferingMask) throws Exception{
+    	request = "SET:SUBSCRIBERSERVICEOFFERING:SubscriberNumber,"+msisdn+":SubscriberServiceOffering,"+ serviceOfferingId+":SubscriberServiceOfferingMask,"+ serviceOfferingMask+";";
+        responseCode="";      
+        response = Utilities.sendToTelnetServer(request);//Utilities.sendToAirServer(request);
+        logger.debug("setSubscriberPSOBit RESPONSE: " +response);
+        HashMap resp = this.getResponseMap(response);
+      if (response != null){
+        responseCode =  (String)resp.get("responseCode");  
+        if(responseCode.startsWith("ResponseDateTime".toLowerCase()))responseCode="0";
+      }      
+     return responseCode;
+     }
+    
+    public String resetSubscriberAccumulator(String msisdn, String accumulatorId) throws Exception{
+    	String [] date = Utilities.getCurrentDate().split("/");
+    	String dateAsString = date[0]+date[1]+date[2];// Integer.toString(date.getYear())+Integer.toString(date.getMonth())+Integer.toString(date.getDay());
+    	//first get current accumulator value
+    	Map subscriberInfo = getSubscriberBalance(msisdn);    	
+    	String serviceClassId	 = (String)subscriberInfo.get("serviceclass");
+    	String accumulatorNumber = (String)subscriberInfo.get("accumulator"+accumulatorId.trim()+"id".toLowerCase());
+    	String accumulatorValue = (String)subscriberInfo.get("accumulator"+accumulatorId.trim()+"value".toLowerCase());
+    	String amountToDeduct;
+    	if(accumulatorValue.startsWith("-")){
+    		amountToDeduct = Integer.valueOf(accumulatorValue.trim().substring(1)).toString();
+    		request = "SET:USAGEACCUMULATOR:SubscriberNumber,"+msisdn+":ServiceClass,"+serviceClassId.trim()+
+			  ":AccumulatorAction,ADD:"+
+			  "Accumulator"+accumulatorId+"ID,"+accumulatorNumber+
+			  ":Accumulator"+accumulatorId+"Value,"+amountToDeduct+
+			  ":Accumulator"+accumulatorId+"StartDate,"+dateAsString+";";
+    	}else{
+    		amountToDeduct = Integer.valueOf(accumulatorValue.trim()).toString();
+	    	request = "SET:USAGEACCUMULATOR:SubscriberNumber,"+msisdn+":ServiceClass,"+serviceClassId.trim()+
+	    			  ":AccumulatorAction,SUBTRACT:"+
+	    			  "Accumulator"+accumulatorId+"ID,"+accumulatorNumber+
+	    			  ":Accumulator"+accumulatorId+"Value,"+amountToDeduct+
+	    			  ":Accumulator"+accumulatorId+"StartDate,"+dateAsString+";";
+    	}
+    	responseCode="";      
+        response = Utilities.sendToTelnetServer(request);//Utilities.sendToAirServer(request);
+        logger.debug("resetSubscriberAccumulator RESPONSE: " +response);
+        HashMap resp = this.getResponseMap(response);
+      if (response != null){
+        responseCode =  (String)resp.get("responseCode");  
+        if(responseCode.startsWith("ResponseDateTime".toLowerCase()))responseCode="0";
+      }      
+     return responseCode;
+     }
+    /*public String setSubscriberAccumulator(String msisdn, String accumulatorId,String minimumAccumulatorValue) throws Exception{
+    	String [] date = Utilities.getCurrentDate().split("/");
+    	String dateAsString = date[0]+date[1]+date[2];// Integer.toString(date.getYear())+Integer.toString(date.getMonth())+Integer.toString(date.getDay());
+    	//first get current accumulator value
+    	Map subscriberInfo = getSubscriberBalance(msisdn);    	
+    	String serviceClassId	 = (String)subscriberInfo.get("serviceclass");
+    	String accumulatorNumber = (String)subscriberInfo.get("accumulator"+accumulatorId.trim()+"Id".toLowerCase());
+    	String accumulatorValue = (String)subscriberInfo.get("accumulator"+accumulatorId.trim()+"Value".toLowerCase());
+    	String amountToADD = Integer.valueOf(Integer.valueOf("1")+ Integer.valueOf(minimumAccumulatorValue.trim())).toString();
+    	System.out.println("amountToAdd: "+amountToADD);
+    	System.out.println("amountToAdd: "+Integer.valueOf(amountToADD).intValue());
+    	
+    	System.out.println("Accumulator Id: "+accumulatorId);
+    	System.out.println("Accumulator Number: "+accumulatorNumber);
+    	System.out.println("Calling resetSubscriberAccumulator()...");
+    	//first reset the accumulator value
+    	this.resetSubscriberAccumulator(msisdn,accumulatorId);
+    	
+    	request = "SET:USAGEACCUMULATOR:SubscriberNumber,"+msisdn+":ServiceClass,"+serviceClassId.trim()+
+    			  ":AccumulatorAction,ADD:"+
+    			  "Accumulator"+accumulatorId+"ID,"+accumulatorNumber+
+    			  ":Accumulator"+accumulatorId+"Value,"+amountToADD+
+    			  ":Accumulator"+accumulatorId+"StartDate,"+dateAsString+";";
+    	responseCode="";    
+    	
+    	//set the accumulator value
+    	System.out.println("Request: "+request);
+        response = Utilities.sendToTelnetServer(request);//Utilities.sendToAirServer(request);
+        logger.debug("setSubscriberAccumulator RESPONSE: " +response);
+        HashMap resp = this.getResponseMap(response);
+      if (response != null){
+        responseCode =  (String)resp.get("responseCode");  
+        if(responseCode.startsWith("ResponseDateTime".toLowerCase()))responseCode="0";
+      }      
+     return responseCode;
+     }*/
+    
+    public String setSubscriberAccumulator(String msisdn, String serviceClass,String accumulatorId,String minimumAccumulatorValue) throws Exception{
+    	String [] date = Utilities.getCurrentDate().split("/");
+    	String dateAsString = date[0]+date[1]+date[2];// Integer.toString(date.getYear())+Integer.toString(date.getMonth())+Integer.toString(date.getDay());
+    	//first get current accumulator value
+    	
+    	
+    	System.out.println("Accumulator Id: "+accumulatorId);
+    	System.out.println("Accumulator Value: "+minimumAccumulatorValue);
+    	System.out.println("Calling resetSubscriberAccumulator()...");
+    	//first reset the accumulator value
+    	this.resetSubscriberAccumulator(msisdn,accumulatorId);
+    	
+    	request = "SET:USAGEACCUMULATOR:SubscriberNumber,"+msisdn+":ServiceClass,"+serviceClass.trim()+
+    			  ":AccumulatorAction,ADD:"+
+    			  "Accumulator"+accumulatorId+"ID,"+accumulatorId+
+    			  ":Accumulator"+accumulatorId+"Value,"+minimumAccumulatorValue+
+    			  ":Accumulator"+accumulatorId+"StartDate,"+dateAsString+";";
+    	responseCode="";    
+    	
+    	//set the accumulator value
+    	System.out.println("Request: "+request);
+        response = Utilities.sendToTelnetServer(request);//Utilities.sendToAirServer(request);
+        logger.debug("setSubscriberAccumulator RESPONSE: " +response);
+        HashMap resp = this.getResponseMap(response);
+      if (response != null){
+        responseCode =  (String)resp.get("responseCode");  
+        if(responseCode.startsWith("ResponseDateTime".toLowerCase()))responseCode="0";
+      }      
+     return responseCode;
+     }
+    
+    
+    public String reduceSubscriberAccumulatorValue(String msisdn, String accumulatorId,String accumalatorReductionValue) throws Exception{
+    	String [] date = Utilities.getCurrentDate().split("/");
+    	String dateAsString = date[0]+date[1]+date[2];// Integer.toString(date.getYear())+Integer.toString(date.getMonth())+Integer.toString(date.getDay());
+    	//first get current accumulator value
+    	Map subscriberInfo = getSubscriberBalance(msisdn);    	
+    	String serviceClassId	 = (String)subscriberInfo.get("serviceclass");
+    	String accumulatorNumber = (String)subscriberInfo.get("accumulator"+accumulatorId.trim()+"Id".toLowerCase());
+    	String accumulatorValue = (String)subscriberInfo.get("accumulator"+accumulatorId.trim()+"Value".toLowerCase());
+    	String amountToDeduct = Integer.valueOf( Integer.valueOf(accumalatorReductionValue.trim())).toString();
+    	
+    	request = "SET:USAGEACCUMULATOR:SubscriberNumber,"+msisdn+":ServiceClass,"+serviceClassId.trim()+
+    			  ":AccumulatorAction,SUBTRACT:"+
+    			  "Accumulator"+accumulatorId+"ID,"+accumulatorNumber+
+    			  ":Accumulator"+accumulatorId+"Value,"+amountToDeduct+
+    			  ":Accumulator"+accumulatorId+"StartDate,"+dateAsString+";";
+    	responseCode="";    
+    	
+    	
+    	//set the accumulator value
+        response = Utilities.sendToTelnetServer(request);//Utilities.sendToAirServer(request);
+        logger.debug("setSubscriberAccumulator RESPONSE: " +response);
+        HashMap resp = this.getResponseMap(response);
+      if (response != null){
+        responseCode =  (String)resp.get("responseCode");  
+        if(responseCode.startsWith("ResponseDateTime".toLowerCase()))responseCode="0";
+      }      
+     return responseCode;
+     }
+    
+        
+   public String changeSubscriberServiceClass(String msisdn, String currentServiceClass, String newServiceClass) throws Exception{
+        request = "<?xml version=\"1.0\"?><methodCall><methodName>"+Constants.UPDATE_SC_REQ+"</methodName>"+
+	      "<params> <param><value><struct><member><name>originNodeType</name> <value><string>EXT</string></value>"+
+	      "</member> <member><name>originHostName</name> <value><string>YSP</string></value></member>"+
+	      "<member><name>externalData1</name><value><string>YSP</string></value></member>"+
+	      "<member><name>originTransactionID</name><value><string>123</string></value></member><member><name>originTimeStamp</name>"+
+	      "<value><dateTime.iso8601>20070123T12:03:26+0100</dateTime.iso8601></value></member><member><name>subscriberNumberNAI</name>"+
+	      " <value><int>1</int></value></member><member><name>subscriberNumber</name><value><string>"+msisdn+"</string></value></member>"+
+	      "<member><name>messageCapabilityFlag</name> <value><string>00000000</string></value></member><member><name>serviceClassCurrent</name>" +
+              " <value><int>"+currentServiceClass+"</int></value></member><member><name>serviceClassNew</name><value><int>"+newServiceClass+"</int></value></member>" +
+              "</struct></value></param></params></methodCall>";
+        
+        
+        
+      response = Utilities.sendToAirServer(request);
+      logger.debug("SC RESPONSE: " +response);
+      
+      int lens = response.length();
+
+      if (response != null)
+      {
+        Document document = DocumentHelper.parseText(response);
+        XPath adjustmentXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member/value/i4");
+			
+        responseCode = adjustmentXpath.selectSingleNode(document).getText();
+        
+      }
+      
+      dataErrorXpath = null;
+      businessLogicErrorXpath = null;
+      responseCodeXpath = null;
+      serviceClassXpath = null;
+             
+     return responseCode;
+        
+    
+       
+    }
+   
+   /**
+    * This method implements the FAF UCIP specifcation for addition of FAF numbers
+    * @params msisdn, fafNumber 
+    * @return String responseCode
+    */
+   
+   public String addFAF(String msisdn, String fafNumber) throws Exception
+   {
+	   request = "<?xml version=\"1.0\"?><methodCall><methodName>" + Constants.FAF_UPDATE_REQ + "</methodName>"+
+       "<params><param><value><struct><member><name>fafAction</name><value><string>ADD</string></value>"+
+       "</member><member><name>fafInformation</name><value><array><data><value><struct><member>"+
+       "<name>fafIndicator</name><value><i4>2</i4></value></member><member><name>fafNumber</name>"+
+       "<value><string>"+fafNumber+"</string></value></member><member><name>owner</name><value><i4>1</i4></value>"+
+       "</member></struct></value></data></array></value></member><member><name>originHostName</name>"+
+       "<value><string>YSP</string></value></member>"+
+       "<member><name>externalData1</name><value><string>YSP</string></value></member>"+
+       "<member><name>originNodeType</name><value><string>EXT</string></value>"+
+       "</member><member><name>originTimeStamp</name><value><dateTime.iso8601>" + Utilities.getISO8601DateTime() + "</dateTime.iso8601></value>"+
+       "</member><member><name>originTransactionID</name><value><string>1</string></value></member><member><name>subscriberNumber</name>"+
+       "<value><string>"+msisdn+"</string></value></member><member><name>subscriberNumberNAI</name><value><i4>2</i4></value>"+
+       "</member></struct></value></param></params></methodCall>";
+
+
+	   logger.debug("ADD FAF REQUEST: " +request);
+         
+       response = Utilities.sendToAirServer(request);
+       logger.debug("THE RESPONSE FROM FAF ADD: " +response);
+       if (response != null){
+           //Ensure response is not null before processing...defensive programming
+    	   logger.debug("ADD FAF RESPONSE: " +response);
+           Document document = DocumentHelper.parseText(response);
+           dataErrorXpath = DocumentHelper.createXPath("/methodResponse/fault/value/struct/member/value/i4");
+           businessLogicErrorXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[1]/value/i4");
+           
+           if (dataErrorXpath.selectSingleNode(document) != null){
+               
+               //This error occourse mainly when there is inconsistency in the request xml sent to AIR
+               //E.g missing parameters, invalid numbers, etc
+               responseCodeXpath = DocumentHelper.createXPath("/methodResponse/fault/value/struct/member/value/i4");
+           }
+           else if(businessLogicErrorXpath.selectSingleNode(document) != null){
+               //This errors occours when businrss rules are applied to request data and there is a failure
+               //E.g if faf number already exists, Account not active, subscriber not found
+               //Fortunately the response code for a successful message can also be gotten here. 
+               //The difference is basically the response code and the interpretation
+                responseCodeXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[1]/value/i4");
+           }
+                        
+           
+           responseCode = responseCodeXpath.selectSingleNode(document).getText();
+       }
+       
+     //logger.debug("\nresponse = " + response);
+       
+       dataErrorXpath = null;
+       businessLogicErrorXpath = null;
+       responseCodeXpath = null;
+       serviceClassXpath = null;
+     
+     return responseCode;
+   }
+   
+   public String addFAFWithCharge(String msisdn, String fafNumber) throws Exception
+   {
+     request = "<?xml version=\"1.0\"?><methodCall><methodName>"+ Constants.FAF_UPDATE_REQ + "</methodName>" +
+ 		"<params><param><value><struct><member><name>originNodeType</name><value><string>EXT</string></value>"+
+ 		"</member><member><name>originHostName</name><value><string>YSP</string></value></member>"+
+ 		"<member><name>externalData1</name><value><string>YSP</string></value></member>"+
+ 		"<member><name>originTransactionID</name><value><string>00000001</string></value></member>"+
+ 		"<member><name>originTimeStamp</name><value><dateTime.iso8601>" + Utilities.getISO8601DateTime() + "</dateTime.iso8601></value></member>"+
+ 		"<member><name>subscriberNumber</name><value><string>"+msisdn+"</string></value></member>"+
+ 		"<member><name>fafAction</name><value><string>ADD</string></value></member><member><name>fafInformation</name>"+
+ 		"<value><array><data><value><struct><member><name>fafNumber</name><value>"+fafNumber+"</value></member>"+
+ 		"<member><name>owner</name><value><int>1</int></value></member></struct></value></data></array></value></member>"+
+ 		"<member><name>chargingRequestInformation</name><value><struct><member><name>chargingType</name><value><int>2</int></value></member>"+
+ 		"</struct></value></member></struct></value>"+
+ 		"</param></params></methodCall>";
+
+      //logger.debug("ADD FAF WITH CHARGE REQUEST: " +request);
+          
+       response = Utilities.sendToAirServer(request);
+       logger.debug("ADD FAF WITH CHARGE: " +response);
+       
+       if (response != null){
+           //Ensure response is not null before processing...defensive programming
+    	   //logger.debug("ADD FAF RESPONSE: " +response);
+           Document document = DocumentHelper.parseText(response);
+           dataErrorXpath = DocumentHelper.createXPath("/methodResponse/fault/value/struct/member/value/i4");
+           businessLogicErrorXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[1]/value/i4");
+           
+           if (dataErrorXpath.selectSingleNode(document) != null){
+               
+               //This error occourse mainly when there is inconsistency in the request xml sent to AIR
+               //E.g missing parameters, invalid numbers, etc
+               responseCodeXpath = DocumentHelper.createXPath("/methodResponse/fault/value/struct/member/value/i4");
+           }
+           else if(businessLogicErrorXpath.selectSingleNode(document) != null){
+               //This errors occours when businrss rules are applied to request data and there is a failure
+               //E.g if faf number already exists, Account not active, subscriber not found
+               //Fortunately the response code for a successful message can also be gotten here. 
+               //The difference is basically the response code and the interpretation
+        	   
+        	   responseCodeXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[1]/value/i4");
+        	   
+           }else{
+        	   
+        	   XPath chargingResultXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[2]/name");
+        	   
+        	   if (chargingResultXpath.selectSingleNode(document).getText().equalsIgnoreCase("maxAllowedNumbers")){
+        		   
+        		   responseCodeXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[3]/value/i4");
+        	   }else{
+        		   
+        		  responseCodeXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[2]/value/i4");
+        	   }
+        	   
+                
+           }
+                        
+           
+           responseCode = responseCodeXpath.selectSingleNode(document).getText();
+           //logger.debug("ADD FAF WITH CHARGE : " +responseCode);
+       }
+       
+       dataErrorXpath = null;
+       businessLogicErrorXpath = null;
+       responseCodeXpath = null;
+       serviceClassXpath = null;
+     
+     return responseCode;
+   }
+   /**
+    * This method implements the FAF UCIP specification for deletion of FAF numbers
+    * @params String msisdn, String fafNumber
+    * @return String responseCode
+    */
+   
+   public String delFAF(String msisdn, String fafNumber) throws Exception
+   {
+    /*request = "<?xml version=\"1.0\"?><methodCall><methodName>"+Constants.FAF_UPDATE_REQ+"</methodName>"+
+               "<params><param><value><struct><member><name>fafAction</name><value><string>"+Constants.FAF_DEL+"</string></value>"+
+               "</member><member><name>fafInformation</name><value><array><data><value><struct><member>"+
+               "<name>fafIndicator</name><value><i4>2</i4></value></member><member><name>fafNumber</name>"+
+               "<value><string>"+fafNumber+"</string></value></member><member><name>owner</name><value><i4>1</i4></value>"+
+               "</member></struct></value></data></array></value></member><member><name>originHostName</name>"+
+               "<value><string>YSP</string></value></member>"+
+               "<member><name>externalData1</name><value><string>YSP</string></value></member>"+
+               "<member><name>originNodeType</name><value><string>"+Constants.ORIGIN_NODE_TYPE+"</string></value>"+
+               "</member><member><name>originTimeStamp</name><value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+"</dateTime.iso8601></value>"+
+               "</member><member><name>originTransactionID</name><value><string>"+Utilities.getTransactionId()+"</string></value></member><member><name>subscriberNumber</name>"+
+               "<value><string>"+msisdn+"</string></value></member><member><name>subscriberNumberNAI</name><value><i4>2</i4></value>"+
+               "</member></struct></value></param></params></methodCall>";*/
+	   
+     
+    request = "<?xml version=\"1.0\"?><methodCall><methodName>"+Constants.FAF_UPDATE_REQ+"</methodName>"+
+    "<params><param><value><struct><member><name>fafAction</name><value><string>"+Constants.FAF_DEL+"</string></value>"+
+    "</member><member><name>fafInformation</name><value><array><data><value><struct><member>"+
+    "<name>fafIndicator</name><value><i4>2</i4></value></member><member><name>fafNumber</name>"+
+    "<value><string>"+fafNumber+"</string></value></member><member><name>owner</name><value><i4>1</i4></value>"+
+    "</member></struct></value></data></array></value></member><member><name>originHostName</name>"+
+    "<value><string>YSP</string></value></member><member><name>originNodeType</name><value><string>"+Constants.ORIGIN_NODE_TYPE+"</string></value>"+
+    "</member>"+
+    "<member><name>externalData1</name><value><string>YSP</string></value></member>"+
+    "<member><name>originTimeStamp</name><value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+"</dateTime.iso8601></value>"+
+    "</member><member><name>originTransactionID</name><value><string>"+Utilities.getTransactionId()+"</string></value></member><member><name>subscriberNumber</name>"+
+    "<value><string>"+msisdn+"</string></value></member><member><name>subscriberNumberNAI</name><value><i4>2</i4></value>"+
+    "</member></struct></value></param></params></methodCall>";
+    
+       response = Utilities.sendToAirServer(request);
+       
+       if(response != null){
+           //Ensure response is not null before processing...defensive programming
+    	   
+    	   logger.debug("YSP DELETE FAF RESPONSE: " +response);
+           
+           Document document = DocumentHelper.parseText(response);
+           dataErrorXpath = DocumentHelper.createXPath("/methodResponse/fault/value/struct/member/value/i4");
+           businessLogicErrorXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[1]/value/i4");
+           
+           if (dataErrorXpath.selectSingleNode(document) != null){
+               //Error Same as explained above
+               responseCodeXpath = DocumentHelper.createXPath("/methodResponse/fault/value/struct/member/value/i4");
+                 
+           }
+           else{
+               //Same as explained above
+              responseCodeXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[1]/value/i4");
+   
+               
+           }
+           
+           responseCode = responseCodeXpath.selectSingleNode(document).getText();
+       }
+          
+       dataErrorXpath = null;
+       businessLogicErrorXpath = null;
+       responseCodeXpath = null;
+       serviceClassXpath = null;
+    return responseCode;
+   }
+   
+   /**
+    * This Method implements the FAF-UCIP specifications for viewing of registered faf numbers
+    * It essentially returns a Map containing the responsecode and if the request was successful, a list 
+    * containing the added faf numbers
+    *
+    * @param String msisdn
+    * @return Map fafMap
+    */
+   public Map viewFAF(String msisdn) throws Exception
+   {
+     
+     Map fafMap = new HashMap();
+     List fafList = new ArrayList();
+
+     
+    /* request = "<?xml version=\"1.0\"?><methodCall><methodName>"+Constants.GET_FAF_REQ+"</methodName>"+
+ 	      "<params> <param><value><struct><member><name>originNodeType</name> <value><string>"+Constants.ORIGIN_NODE_TYPE+"</string></value>"+
+ 	      "</member> <member><name>originHostName</name> <value><string>YSP</string></value></member>"+
+ 	     "<member><name>externalData1</name><value><string>YSP</string></value></member>"+
+ 	      "<member><name>originTransactionID</name><value><string>"+Utilities.getTransactionId()+"</string></value></member><member><name>originTimeStamp</name>"+
+ 	      "<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+"</dateTime.iso8601></value></member><member><name>subscriberNumberNAI</name>"+
+ 	      " <value><int>"+Constants.SUB_NUMBER_NAI+"</int></value></member><member><name>subscriberNumber</name><value><string>"+msisdn+"</string></value></member>"+
+ 	      "<member><name>messageCapabilityFlag</name> <value><string>"+Constants.MSG_CAPABILITY_FLAG+"</string></value></member><member><name>requestedOwner</name>"+
+              "<value><string>1</string></value></member></struct></value></param></params></methodCall>";*/
+     
+     request = "<?xml version=\"1.0\"?><methodCall><methodName>"+Constants.GET_FAF_REQ+"</methodName>"+
+      "<params> <param><value><struct><member><name>originNodeType</name> <value><string>"+Constants.ORIGIN_NODE_TYPE+"</string></value>"+
+      "</member> <member><name>originHostName</name> <value><string>YSP</string></value></member>"+
+      "<member><name>externalData1</name><value><string>YSP</string></value></member>"+
+      "<member><name>originTransactionID</name><value><string>"+Utilities.getTransactionId()+"</string></value></member><member><name>originTimeStamp</name>"+
+      "<value><dateTime.iso8601>"+Utilities.getISO8601DateTime()+"</dateTime.iso8601></value></member><member><name>subscriberNumberNAI</name>"+
+      " <value><int>"+Constants.SUB_NUMBER_NAI+"</int></value></member><member><name>subscriberNumber</name><value><string>"+msisdn+"</string></value></member>"+
+      "<member><name>messageCapabilityFlag</name> <value><string>"+Constants.MSG_CAPABILITY_FLAG+"</string></value></member><member><name>requestedOwner</name>"+
+         "<value><string>1</string></value></member></struct></value></param></params></methodCall>";
+
+     
+       response = Utilities.sendToAirServer(request);
+       logger.debug("FAF DE REPONSE: " +response);
+       
+       //logger.debug("Content Length: " +lens);
+       XPath xpathSelector = null;
+       responseCodeXpath = null;
+       
+       
+       if (response != null){
+           //int lens = response.length();
+           //Ensure response is not null before processing...defensive programming
+           
+           Document document = DocumentHelper.parseText(response);
+           dataErrorXpath = DocumentHelper.createXPath("/methodResponse/fault/value/struct/member/value/i4");
+           businessLogicErrorXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[1]/value/i4");
+
+           if (dataErrorXpath.selectSingleNode(document)!= null){
+               //This is same as explained above
+               responseCodeXpath = DocumentHelper.createXPath("/methodResponse/fault/value/struct/member/value/i4");
+               
+           }
+           else if(businessLogicErrorXpath.selectSingleNode(document) != null){
+               //Errors generated as a result of applying business rules as explained above
+        	   if (businessLogicErrorXpath.selectSingleNode(document).getText().equalsIgnoreCase("fafInformation")){
+        		   responseCodeXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[2]/value/i4");
+        	   }
+        	   else{
+        		   responseCodeXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[1]/value/i4");
+        	   }
+               
+               
+           }
+           else{
+               
+               //No Errors occoured. Request executed successfully.
+               //Now extract the FAF list and send back to the calling application
+               
+                xpathSelector = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member/value/array/data/value/struct/member/value/string");
+                XPath inconsistency = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[2]/name");
+                logger.debug("NODE IS: " + inconsistency.selectSingleNode(document).getText());
+                if (inconsistency.selectSingleNode(document).getText().equalsIgnoreCase("maxAllowedNumbers")){
+                	
+                	responseCodeXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[3]/value/i4");
+                }
+                else {
+                	responseCodeXpath = DocumentHelper.createXPath("/methodResponse/params/param/value/struct/member[2]/value/i4");
+                }
+                
+                
+                                   
+                if (xpathSelector.selectNodes(document) != null){
+                    
+                    List xpathList = xpathSelector.selectNodes(document);
+                    Iterator xpathListIterator = xpathList.iterator();
+        
+                    while(xpathListIterator.hasNext()){
+                         Element element = (Element)xpathListIterator.next();
+                         fafList.add(element.getText());
+                    }
+                    fafMap.put("fafList", fafList);
+               
+                    xpathList = null;
+                    xpathListIterator = null;
+               }
+                            
+           }
+                    
+          responseCode = responseCodeXpath.selectSingleNode(document).getText();
+          logger.debug("Response Code: " +responseCode);
+          
+       }
+       
+          
+         fafMap.put("responseCode", responseCode);
+         
+         dataErrorXpath = null;
+         businessLogicErrorXpath = null;
+         responseCodeXpath = null;
+         serviceClassXpath = null;
+         xpathSelector = null;
+         
+                
+         return fafMap;
+   }
+   
+   
+   private java.util.HashMap getResponseMap(String response){
+	   java.util.HashMap respMap = new java.util.HashMap();
+	    String [] respArray; String responseCode="";String [] arrayValue;
+	    
+
+	      if (response != null)
+	      {
+	    	int lens = response.length();
+	        
+	        if (lens < 210)
+	        {
+	        	responseCode = response.split(":")[1].toLowerCase();
+	          
+	        }else if(lens < 300){
+	        	responseCode = response.split(":")[1].toLowerCase();
+	        }
+	        else
+	        {     
+	          respArray =  response.split(":"); 
+	          logger.debug(" the respArray :  "+respArray);
+	          responseCode = respArray[1].toLowerCase();
+	  	   //logger.debug("userMap : "+userMap);
+	          if(responseCode.startsWith("0")){
+	        	  for(int i=2;i<respArray.length;i++){
+	        		  arrayValue = respArray[i].split(",");
+	        		  if(arrayValue.length >1){
+	        		  respMap.put(arrayValue[0].toLowerCase(),arrayValue[1].toLowerCase());
+	        		  }else{
+	        			  respMap.put(arrayValue[0].toLowerCase(),null);
+	        		  }
+	        	  		}
+	          	}
+	          }
+	        
+	        respMap.put( "responseCode",responseCode.toLowerCase());
+	        }
+	    return respMap;
+	    }
+
+
+	
+	
+
+}

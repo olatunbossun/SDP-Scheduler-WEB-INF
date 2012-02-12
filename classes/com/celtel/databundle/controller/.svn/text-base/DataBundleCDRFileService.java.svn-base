@@ -1,0 +1,208 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package com.celtel.databundle.controller;
+
+import java.io.IOException;
+import org.apache.log4j.*;
+import org.apache.commons.configuration.*;
+import org.apache.commons.lang.*;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPReply;
+
+import java.util.TimerTask;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.Date;
+import java.util.Enumeration;
+import java.text.SimpleDateFormat;
+import javax.servlet.ServletContext;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.BufferedWriter;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import com.celtel.databundle.service.utilities.Utilities;
+import java.io.FileWriter;
+import java.text.*;
+import java.util.*;
+/**
+ *
+ * @author CAkowundu
+ */
+public class DataBundleCDRFileService extends TimerTask  {
+    ServletContext servletContext;
+    java.io.File cDRFile;
+    private File cdrFileNew;
+    private static Configuration configuration = null;
+    String ftpServerUrl;
+    String ftpUserName;
+    String ftpPassword ;
+    String fileLocalLocation;
+    String ftpWorkingDirectory;
+    private Utilities utilities;
+    public DataBundleCDRFileService (){
+    }
+    public DataBundleCDRFileService (Configuration configuration,Utilities utilities){
+      
+            this.configuration =  configuration;
+            this.utilities = utilities;
+        
+            ftpServerUrl = configuration.getString("ftp.server");
+            ftpUserName = configuration.getString("ftp.username");
+            ftpPassword = configuration.getString("ftp.password");
+            fileLocalLocation = configuration.getString("localhost.file.location");
+            ftpWorkingDirectory = configuration.getString("ftp.server.work.directory");
+            System.out.println("ftpServerUrl:" + ftpServerUrl+"ftpUserName"+ftpUserName+"fileLocalLocation"+fileLocalLocation+","+"ftp.server.work.directory : "+ftpWorkingDirectory);
+        
+    
+    }
+static Logger logger = Logger.getLogger(DataBundleCDRFileService.class);
+    @Override
+    public void run() {
+         
+//        SimpleDateFormat f = new SimpleDateFormat("yyyyMMDDHHSS");
+//          String  currentDate = new String(f.format(new Date()));
+           String  currentDate =  getISO8601DateTime();
+          System.out.println("currentDate : "+currentDate);
+          String fileName = fileLocalLocation.trim()+"YSP_SC_CHANGE_"+currentDate+".cdr";
+          cdrFileNew = new File(fileName);
+          
+          try{
+        //  cDRFile =  (File)this.servletContext.getAttribute("CDRFILE");
+              BufferedWriter out = new BufferedWriter(new FileWriter(cdrFileNew));
+            
+           // out.write(""+"\n");
+            out.write("MSISDN"+","+"OLD_SERVICE_CLASS"+","+"NEW_SERVICE_CLASS"+","+"DATE"+","+"SUCCESS_STATUS"+"\n");
+            out.close();
+             boolean successfile =  cdrFileNew.createNewFile();
+             System.out.println("file created : "+!successfile);
+          cDRFile = this.utilities.getCDRFile();
+          
+          if (cDRFile == null) {   
+              this.utilities.setCDRFile(cdrFileNew);
+               // this.servletContext.setAttribute("CDRFILE", cdrFileNew);
+            } else {
+                this.utilities.setCDRFile(cdrFileNew);
+               //  this.servletContext.setAttribute("CDRFILE", cdrFileNew);
+                 //ftp the file to the FTP Location
+                 
+//             out = new BufferedWriter(new FileWriter(cDRFile,true));
+//            
+//            
+//            
+//            out.close();
+                 ftpFile(cDRFile);
+            }
+          }catch (java.lang.Exception ex){
+              ex.printStackTrace();
+          }
+          
+    }
+    public void ftpFile(File fileToFTP){
+        FTPClient ftp = new FTPClient();
+        try {
+           
+            System.out.println("about to Connect to ftp location "  + ".");
+            // Connect and logon to FTP Server
+			
+			ftp.connect(this.ftpServerUrl);
+			int reply = ftp.getReplyCode();
+
+			if(!FTPReply.isPositiveCompletion(reply)) {
+				        ftp.disconnect();
+				        System.err.println("FTP server refused connection.");
+				 //System.exit(1);
+				 
+			}else{//System.out.println("Connected to " + server + "."+ "reply :"+ reply);
+
+			ftp.login(this.ftpUserName, this.ftpPassword);
+			System.out.println("Connected to " + this.ftpServerUrl + ".");
+			//System.out.print(ftp.getReplyString());
+			System.out.println("working directory : "+ftp.printWorkingDirectory());   
+                        ftp.changeToParentDirectory();
+			boolean changedDirectory=  ftp.changeWorkingDirectory(ftpWorkingDirectory.trim());
+                        if(changedDirectory){  
+                            System.out.println("changed working directory : "+ftp.printWorkingDirectory()); 
+                         FileInputStream fInputStream = null;
+                         boolean fileSuccessTransfer;
+			fInputStream= new FileInputStream(fileToFTP);
+			 fileSuccessTransfer = ftp.appendFile(fileToFTP.getName(),fInputStream );
+			System.out.println("Message file successfully transfered: " + fileSuccessTransfer);
+			// Logout from the FTP Server and disconnect
+			ftp.logout();
+			ftp.disconnect();
+                        }
+                        }
+        } catch (Exception ex) {
+            java.util.logging.Logger.getLogger(DataBundleCDRFileService.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            ex.printStackTrace();
+        }finally{
+            try {
+               if(ftp.isConnected()) {
+        
+                  ftp.disconnect();
+        
+               }
+            } catch (IOException ex) {
+                java.util.logging.Logger.getLogger(DataBundleCDRFileService.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            }
+        }
+        }
+    
+    
+    public  String getISO8601DateTime(){
+	    String year = " ";
+	    String month = " ";
+	    String day = " ";
+	    String hour = " ";
+	    String minute = " ";
+	    String second = " ";
+
+	    String[] ids = TimeZone.getAvailableIDs(+1 * 60 * 60 * 1000);
+	    //	if no ids were returned, something is wrong.
+			if (ids.length != 0)
+			{
+
+				SimpleTimeZone pdt = new SimpleTimeZone(+1 * 60 * 60 * 1000, ids[0]);
+
+				Calendar calendar = new GregorianCalendar(pdt);
+				Date trialTime = new Date();
+				calendar.setTime(trialTime);
+                                System.out.println("DataBundleCDR date is : " + calendar.getTime());
+				year = new Integer(calendar.get(Calendar.YEAR)).toString();
+				month = new Integer(calendar.get(Calendar.MONTH)+1).toString();
+				if(month.length()==1){
+					month = "0"+month;
+				}
+									
+				day = new Integer(calendar.get(Calendar.DAY_OF_MONTH)).toString();
+				if(day.length()==1){
+					day = "0"+day;
+				}
+			
+				hour = new Integer(calendar.get(Calendar.HOUR_OF_DAY)).toString();
+				if (hour.length()==1){
+					hour = "0" +hour;
+				}
+			
+				minute = new Integer(calendar.get(Calendar.MINUTE)).toString();
+				if(minute.length()==1){
+					minute = "0"+minute;
+				}
+			
+				second = new Integer(calendar.get(Calendar.SECOND)).toString();
+				if(second.length()==1){
+					second = "0" + second;
+				}
+			
+					    
+			 }
+			//return year+month+day+"T"+hour+":"+minute+":"+second+"+0100";
+                        return year+month+day+hour+minute+second;
+		}
+    
+   
+}

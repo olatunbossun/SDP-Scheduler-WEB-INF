@@ -1,0 +1,26 @@
+package com.celtel.databundle.model;
+
+public class Subscriber extends BaseObject{
+	
+	private static final long serialVersionUID = 3832626162273359411L;
+	
+	private String msisdn = null;
+	private String message = null;
+	
+	public void setMsisdn(String msisdn){
+        this.msisdn = msisdn;
+    }
+    
+    public String getMsisdn(){
+        return this.msisdn;
+    }
+    
+    public void setMessage(String message){
+    	this.message = message;
+    }
+    
+    public String getMessage(){
+    	return this.message;
+    }    
+    
+}

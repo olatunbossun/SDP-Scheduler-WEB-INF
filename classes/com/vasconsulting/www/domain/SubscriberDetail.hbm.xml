@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate Mapping DTD 3.0//EN" 
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="com.vasconsulting.www.domain">
+	<class name="SubscriberDetail" table="subscriber">
+		<id name="id" column="id" type="string">
+			<generator class="assigned" />
+		</id>
+		<property name="firstname" type="string" length="30" />
+		<property name="lastname" type="string" length="30" />
+		<property name="middlename" type="string" length="30" />
+		<property name="email" type="string" length="50" />
+		<property name="pin" type="string" length="20" />
+		<property name="imei" type="string" length="20" />
+		<property name="msisdn" type="string" length="20" />
+		<property name="imsi" type="string" length="20" />
+		<property name="servicetype" type="int" length="5" />
+		<property name="date_created" type="calendar" />
+		<property name="next_subscription_date" type="calendar" />
+		<property name="last_subscription_date" type="calendar" />
+		<property name="status" column="statusid" length="30" type="string" />
+		<property name="serviceplan" column="serviceplanid" length="30" type="string" />
+		<property name="shortCode" column="shortcode" length="50" type="string" />
+		
+		<property name="autoRenew" column="autorenew" length="30" type="int" />
+		<property name="prepaidSubscriber" column="prepaidsubscriber" length="30" type="int" />
+		<property name="postpaidSubscriber" column="postpaidsubscriber" length="30" type="int" />
+
+
+	</class>
+</hibernate-mapping>

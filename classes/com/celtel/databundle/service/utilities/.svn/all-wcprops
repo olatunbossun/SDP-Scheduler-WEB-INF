@@ -1,0 +1,95 @@
+K 25
+svn:wc:ra_dav:version-url
+V 78
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities
+END
+Utilities.class
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/Utilities.class
+END
+TelnetProtocolHandler.class
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/TelnetProtocolHandler.class
+END
+Constants.class
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/Constants.class
+END
+ScriptHandler.java
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/ScriptHandler.java
+END
+CDRFileGenerator.class
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/CDRFileGenerator.class
+END
+SogCommands.java
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/SogCommands.java
+END
+Utilities.java
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/Utilities.java
+END
+TelnetProtocolHandler.java
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/TelnetProtocolHandler.java
+END
+Constants.java
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/Constants.java
+END
+databundle.properties
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/databundle.properties
+END
+CDRFileGenerator.java
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/CDRFileGenerator.java
+END
+TelnetWrapper.class
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/TelnetWrapper.class
+END
+ScriptHandler.class
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/ScriptHandler.class
+END
+TelnetWrapper.java
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/TelnetWrapper.java
+END
+SogCommands.class
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/svn/BlackberryBroker/!svn/ver/5/trunk/com/celtel/databundle/service/utilities/SogCommands.class
+END

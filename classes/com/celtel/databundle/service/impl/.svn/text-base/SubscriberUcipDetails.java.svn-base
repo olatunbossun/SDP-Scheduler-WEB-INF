@@ -1,0 +1,52 @@
+package com.celtel.databundle.service.impl;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
+public class SubscriberUcipDetails {
+	private float accountBalanace;
+	private int accumulatorId;
+	private ArrayList<String> activeServiceOffering;
+	private HashMap<String,Float> accumulatorValue;
+	private String responseCode;
+	private String serviceClass;
+	
+	public String getServiceClass() {
+		return serviceClass;
+	}
+	public void setServiceClass(String serviceClass) {
+		this.serviceClass = serviceClass;
+	}
+	public String getResponseCode() {
+		return responseCode;
+	}
+	public void setResponseCode(String responseCode) {
+		this.responseCode = responseCode;
+	}
+	public float getAccountBalanace() {
+		return accountBalanace;
+	}
+	public void setAccountBalanace(float accountBalanace) {
+		this.accountBalanace = accountBalanace;
+	}
+	public int getAccumulatorId() {
+		return accumulatorId;
+	}
+	public void setAccumulatorId(int accumulatorId) {
+		this.accumulatorId = accumulatorId;
+	}
+	public HashMap getAccumulatorValue() {
+		return accumulatorValue;
+	}
+	public void setAccumulatorValue(HashMap<String,Float> accumulatorValue) {
+		this.accumulatorValue = accumulatorValue;
+	}
+	public ArrayList<String> getActiveServiceOffering() {
+		return activeServiceOffering;
+	}
+	public void setActiveServiceOffering(ArrayList<String> activeServiceOffering) {
+		this.activeServiceOffering = activeServiceOffering;
+	}
+	
+	
+}

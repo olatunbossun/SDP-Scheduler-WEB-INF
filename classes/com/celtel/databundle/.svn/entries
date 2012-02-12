@@ -1,0 +1,40 @@
+10
+
+dir
+5
+http://172.16.244.242:81/svn/BlackberryBroker/trunk/com/celtel/databundle
+http://172.16.244.242:81/svn/BlackberryBroker
+
+
+
+2011-02-07T15:22:25.955326Z
+5
+nnamdi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+c5913eac-5da7-754b-b4ba-672075976113
+
+service
+dir
+
+model
+dir
+
+controller
+dir
+
+dao
+dir
+

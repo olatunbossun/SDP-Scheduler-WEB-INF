@@ -1,0 +1,925 @@
+package com.celtel.databundle.service.utilities;
+
+import java.text.*;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import sun.misc.BASE64Encoder;
+import java.net.*;
+import java.io.*;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.lang.*;
+
+import com.celtel.databundle.model.Activity;
+import com.celtel.databundle.service.impl.DataBundleServiceManagerImpl;
+
+public class Utilities {
+
+	private static Log logger = LogFactory.getLog(Utilities.class);
+
+	private static String defaultDatePattern = null;
+
+	private static Configuration configuration = null;
+
+	private static DataBundleServiceManagerImpl databundleServiceManagerImpl;
+
+	private static File cdrfile = null;
+
+	private static TelnetWrapper telnet = new TelnetWrapper();
+
+	private static String telnetServerIP = null;
+
+	private static String telnetServerPort = null;
+
+	private static String telnetServerUsername = null;
+
+	private static String telnetServerPassword = null;
+
+	private static String Response1 = "RESP:0";
+
+	private static String Response2 = "RESP:10216";
+
+	private static String Response3 = "RESP:10218";
+
+	private static String Response4 = "RESP:10220";
+
+	public void setConfiguration(Configuration configuration) {
+		this.configuration = configuration;
+	}
+	
+	
+	public static String getISO8601DateTime(String expiryDate, int validity) {
+		String year = " ";
+		String month = " ";
+		String day = " ";
+		String hour = " ";
+		String minute = " ";
+		String second = " ";
+		
+		String newMonth = expiryDate.substring(4,6);//20130609T12:00:00+0000
+		String newYear = expiryDate.substring(0,4);
+		String newDay = expiryDate.substring(6,8);
+
+		String[] ids = TimeZone.getAvailableIDs(+1 * 60 * 60 * 1000);
+		// if no ids were returned, something is wrong.
+		if (ids.length != 0) {
+
+			SimpleTimeZone pdt = new SimpleTimeZone(+1 * 60 * 60 * 1000, ids[0]);
+
+			Calendar calendar = new GregorianCalendar(pdt);
+			calendar.set(new Integer(newYear).intValue(), 
+					new Integer(newMonth).intValue(), 
+					new Integer(newDay).intValue());
+			/*Date trialTime = new Date();
+			calendar.setTime(trialTime);*/
+			calendar.add(GregorianCalendar.DAY_OF_MONTH, validity);
+			
+			year = new Integer(calendar.get(Calendar.YEAR)).toString();
+			month = new Integer(calendar.get(Calendar.MONTH) + 1).toString();
+			if (month.length() == 1) {
+				month = "0" + month;
+			}
+
+			day = new Integer(calendar.get(Calendar.DAY_OF_MONTH)).toString();
+			if (day.length() == 1) {
+				day = "0" + day;
+			}
+
+			hour = new Integer(calendar.get(Calendar.HOUR_OF_DAY)).toString();
+			if (hour.length() == 1) {
+				hour = "0" + hour;
+			}
+
+			minute = new Integer(calendar.get(Calendar.MINUTE)).toString();
+			if (minute.length() == 1) {
+				minute = "0" + minute;
+			}
+
+			second = new Integer(calendar.get(Calendar.SECOND)).toString();
+			if (second.length() == 1) {
+				second = "0" + second;
+			}
+
+		}
+		return year + month + day + "T" + hour + ":" + minute + ":" + second
+				+ "+0100";
+	}
+	
+		
+	public static String getISO8601DateTime(int validity) {
+		String year = " ";
+		String month = " ";
+		String day = " ";
+		String hour = " ";
+		String minute = " ";
+		String second = " ";
+
+		String[] ids = TimeZone.getAvailableIDs(+1 * 60 * 60 * 1000);
+		// if no ids were returned, something is wrong.
+		if (ids.length != 0) {
+
+			SimpleTimeZone pdt = new SimpleTimeZone(+1 * 60 * 60 * 1000, ids[0]);
+
+			Calendar calendar = new GregorianCalendar(pdt);
+			Date trialTime = new Date();
+			calendar.setTime(trialTime);
+			calendar.add(GregorianCalendar.DAY_OF_MONTH, validity);
+			
+			year = new Integer(calendar.get(Calendar.YEAR)).toString();
+			month = new Integer(calendar.get(Calendar.MONTH) + 1).toString();
+			if (month.length() == 1) {
+				month = "0" + month;
+			}
+
+			day = new Integer(calendar.get(Calendar.DAY_OF_MONTH)).toString();
+			if (day.length() == 1) {
+				day = "0" + day;
+			}
+
+			hour = new Integer(calendar.get(Calendar.HOUR_OF_DAY)).toString();
+			if (hour.length() == 1) {
+				hour = "0" + hour;
+			}
+
+			minute = new Integer(calendar.get(Calendar.MINUTE)).toString();
+			if (minute.length() == 1) {
+				minute = "0" + minute;
+			}
+
+			second = new Integer(calendar.get(Calendar.SECOND)).toString();
+			if (second.length() == 1) {
+				second = "0" + second;
+			}
+
+		}
+		return year + month + day + "T" + hour + ":" + minute + ":" + second
+				+ "+0100";
+	}
+	
+	public static String getISO8601DateTime() {
+		String year = " ";
+		String month = " ";
+		String day = " ";
+		String hour = " ";
+		String minute = " ";
+		String second = " ";
+
+		String[] ids = TimeZone.getAvailableIDs(+1 * 60 * 60 * 1000);
+		// if no ids were returned, something is wrong.
+		if (ids.length != 0) {
+
+			SimpleTimeZone pdt = new SimpleTimeZone(+1 * 60 * 60 * 1000, ids[0]);
+
+			Calendar calendar = new GregorianCalendar(pdt);
+			Date trialTime = new Date();
+			calendar.setTime(trialTime);
+			year = new Integer(calendar.get(Calendar.YEAR)).toString();
+			month = new Integer(calendar.get(Calendar.MONTH) + 1).toString();
+			if (month.length() == 1) {
+				month = "0" + month;
+			}
+
+			day = new Integer(calendar.get(Calendar.DAY_OF_MONTH)).toString();
+			if (day.length() == 1) {
+				day = "0" + day;
+			}
+
+			hour = new Integer(calendar.get(Calendar.HOUR_OF_DAY)).toString();
+			if (hour.length() == 1) {
+				hour = "0" + hour;
+			}
+
+			minute = new Integer(calendar.get(Calendar.MINUTE)).toString();
+			if (minute.length() == 1) {
+				minute = "0" + minute;
+			}
+
+			second = new Integer(calendar.get(Calendar.SECOND)).toString();
+			if (second.length() == 1) {
+				second = "0" + second;
+			}
+
+		}
+		return year + month + day + "T" + hour + ":" + minute + ":" + second
+				+ "+0100";
+	}
+
+	public static String getISODateTime() {
+
+		String year = " ";
+		String month = " ";
+		String day = " ";
+		String hour = " ";
+		String minute = " ";
+		String second = " ";
+
+		String[] ids = TimeZone.getAvailableIDs(+1 * 60 * 60 * 1000);
+		// if no ids were returned, something is wrong.
+		if (ids.length != 0) {
+
+			SimpleTimeZone pdt = new SimpleTimeZone(+1 * 60 * 60 * 1000, ids[0]);
+
+			Calendar calendar = new GregorianCalendar(pdt);
+			Date trialTime = new Date();
+			calendar.setTime(trialTime);
+			logger.debug("DataBundleCDR date is : " + calendar.getTime());
+			year = new Integer(calendar.get(Calendar.YEAR)).toString();
+			month = new Integer(calendar.get(Calendar.MONTH) + 1).toString();
+			if (month.length() == 1) {
+				month = "0" + month;
+			}
+
+			day = new Integer(calendar.get(Calendar.DAY_OF_MONTH)).toString();
+			if (day.length() == 1) {
+				day = "0" + day;
+			}
+
+			hour = new Integer(calendar.get(Calendar.HOUR_OF_DAY)).toString();
+			if (hour.length() == 1) {
+				hour = "0" + hour;
+			}
+
+			minute = new Integer(calendar.get(Calendar.MINUTE)).toString();
+			if (minute.length() == 1) {
+				minute = "0" + minute;
+			}
+
+			second = new Integer(calendar.get(Calendar.SECOND)).toString();
+			if (second.length() == 1) {
+				second = "0" + second;
+			}
+
+		}
+		// return year+month+day+"T"+hour+":"+minute+":"+second+"+0100";
+		return year + month + day + hour + minute + second;
+
+	}
+
+	/**
+	 * 
+	 * This method generates a random transaction id for every request
+	 * 
+	 * @return String transactionId
+	 */
+
+	public static String getTransactionId() {
+
+		String transactionId = new Double(Math.random() * 10000000).toString();
+		transactionId = transactionId.substring(0, transactionId.indexOf("."));
+
+		return transactionId;
+
+	}
+
+	public static String parseUssdMessage(String message) {
+
+		// String msg = " ";
+		// msg = message.substring(5).replace('#', ' ').trim();
+		// return msg;
+		return message.trim();
+	}
+
+	public static String msisdnValidator(String msisdn) {
+
+		if (msisdn.length() < 14) {
+			msisdn = '+' + msisdn;
+		}
+
+		return msisdn;
+	}
+
+	/**
+	 * 
+	 * This method removes extra characters added to the response messages from
+	 * the AIR servers
+	 * 
+	 * @param String
+	 *            response
+	 * @return String
+	 */
+
+	public static String removeFromString(String theString) {
+		try {// Remove substring unwanted from string theString
+			return (theString.substring(4, theString.length())).trim();
+		} catch (StringIndexOutOfBoundsException siobe) {
+			return theString.trim();
+		}
+	}
+
+	/**
+	 * 
+	 * Gets a date format in a specified pattern
+	 * 
+	 * @return String
+	 */
+
+	public static synchronized String getDatePattern() {
+
+		defaultDatePattern = "yyyy/MM/dd";
+		return defaultDatePattern;
+	}
+
+	/**
+	 * 
+	 * Gets the current date
+	 * 
+	 * @return String
+	 */
+
+	public static String getCurrentDate() throws ParseException {
+		Date today = new Date();
+		SimpleDateFormat df = new SimpleDateFormat(getDatePattern());
+
+		// This seems like quite a hack (date -> string -> date),
+		// but it works ;-)
+		String todayAsString = df.format(today);
+		return todayAsString;
+	}
+
+	/**
+	 * 
+	 * A Utility method that handles sending of xml-rpc requests to the AIR
+	 * servers
+	 * 
+	 * @params String request
+	 * @return String response
+	 */
+	public static String sendToAirServer(String request) {
+
+		String username = " ";
+		String password = " ";
+		String ucipPort = " ";
+		String ucipIp = " ";
+		String service = " ";
+
+		Random random = new Random();
+		int number = random.nextInt();
+		// int randomNumber = number % 4;
+		//
+		// if (randomNumber < 1){
+		// randomNumber = randomNumber + 4;
+		// }
+		int randomNumber = number % 5;
+
+		if (randomNumber < 1) {
+			randomNumber = randomNumber + 5;
+		}
+
+		int airServerCount = randomNumber;
+		logger.debug("SENDING TO AIR: " + airServerCount);
+		// logger.debug("SENDING TO AIR configuration = : " +configuration);
+
+		if (airServerCount == 1) {
+			ucipIp = configuration.getString("air.a.ipaddress");
+			username = configuration.getString("air.a.username");
+			password = configuration.getString("air.a.password");
+			ucipPort = configuration.getString("air.a.port");
+			service = configuration.getString("air.a.service");
+		} else if (airServerCount == 2) {
+			ucipIp = configuration.getString("air.b.ipaddress");
+			username = configuration.getString("air.b.username");
+			password = configuration.getString("air.b.password");
+			ucipPort = configuration.getString("air.b.port");
+			service = configuration.getString("air.b.service");
+		} else if (airServerCount == 3) {
+			ucipIp = configuration.getString("air.c.ipaddress");
+			username = configuration.getString("air.c.username");
+			password = configuration.getString("air.c.password");
+			ucipPort = configuration.getString("air.c.port");
+			service = configuration.getString("air.c.service");
+		} else if (airServerCount == 4) {
+			ucipIp = configuration.getString("air.d.ipaddress");
+			username = configuration.getString("air.d.username");
+			password = configuration.getString("air.d.password");
+			ucipPort = configuration.getString("air.d.port");
+			service = configuration.getString("air.d.service");
+		} else if (airServerCount == 5) {
+			ucipIp = configuration.getString("air.e.ipaddress");
+			username = configuration.getString("air.e.username");
+			password = configuration.getString("air.e.password");
+			ucipPort = configuration.getString("air.e.port");
+			service = configuration.getString("air.e.service");
+		}
+
+		String airURL = "http://" + ucipIp + ":" + ucipPort + "/" + service;
+		logger.debug("AIR URL: " + airURL);
+
+		String logonCredentials;
+		String encoding;
+		Map resp = null;
+		String response = null;
+		String line;
+		URL url;
+		URLConnection urlConnection;
+		HttpURLConnection httpUrlConnection;
+
+		try {
+			url = new URL(airURL);
+
+			urlConnection = url.openConnection();
+
+			if (urlConnection instanceof HttpURLConnection) {
+
+				httpUrlConnection = (HttpURLConnection) urlConnection;
+
+				// Disable automatic rediredtion to see the status header
+				httpUrlConnection.setFollowRedirects(false);
+
+				int responseCode;
+				String responseMessage;
+
+				logonCredentials = username + ":" + password;
+				encoding = new BASE64Encoder().encode(logonCredentials
+						.getBytes());
+
+				// Now set connection parameters
+				httpUrlConnection.setDoOutput(true);
+				httpUrlConnection.setDoInput(true);
+				httpUrlConnection.setRequestMethod("POST");
+				httpUrlConnection
+						.setRequestProperty("Content-Type", "text/xml");
+				httpUrlConnection.setRequestProperty("Content-Length",
+						new Integer(request.length()).toString());
+				httpUrlConnection.setRequestProperty("Authorization", "Basic "
+						+ encoding);
+				httpUrlConnection.setRequestProperty("User-Agent",
+						"VAS-UCIP/2.2/1.0");
+
+				OutputStream out = httpUrlConnection.getOutputStream();
+				Writer wout = new OutputStreamWriter(out);
+
+				wout.write(request);
+
+				wout.flush();
+				wout.close();
+
+				BufferedReader in = new BufferedReader(new InputStreamReader(
+						httpUrlConnection.getInputStream()));
+
+				while ((line = in.readLine()) != null) {
+					response = response + line;
+
+				}
+
+				response = Utilities.removeFromString(response);
+
+			}
+		} catch (MalformedURLException e) {
+			// Put Error Handler Routine Here
+		} catch (IOException e) {
+			// Put Error Handler Routine Here
+			// This is critical error
+			logger.debug("I/O ERROR");
+			e.printStackTrace();
+		}
+		return response;
+
+	}
+	
+	
+	public static String sendRequestToAirServer(String request) {
+		
+		InputStream inputStream = null;
+		Properties properties;
+		inputStream = Utilities.class.getResourceAsStream("databundle.properties");
+		properties = new Properties();
+		try {
+			properties.load(inputStream);
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		int totalAirServerCount = new Integer(properties.getProperty("air.server.total")).intValue();
+		String username = " ";
+		String password = " ";
+		String ucipPort = " ";
+		String ucipIp = " ";
+		String service = " ";
+
+		Random random = new Random();
+		int number = random.nextInt();
+		
+		int randomNumber = number % 5;
+
+		if (randomNumber < 1) {
+			randomNumber = randomNumber + totalAirServerCount;
+		}
+
+				
+		ucipIp = properties.getProperty("air.e.ipaddress."+randomNumber);
+		//username = properties.getProperty("air.e.username."+randomNumber);
+		username = "vasucip";
+		ucipPort = properties.getProperty("air.e.port."+randomNumber);
+		service = properties.getProperty("air.e.service."+randomNumber);
+		//password = properties.getProperty("air.e.password."+randomNumber);
+		password = "vasvas";
+		
+		//String airURL = "http://" + ucipIp + ":" + ucipPort + "/" + service;
+		String airURL = "http://10.199.2.56:10010/Air";
+		logger.debug("AIR URL: " + airURL);
+		System.out.println("Sending request to this AIR server : "+airURL);
+
+		String logonCredentials;
+		String encoding;
+		Map resp = null;
+		String response = null;
+		String line;
+		URL url;
+		URLConnection urlConnection;
+		HttpURLConnection httpUrlConnection;
+
+		try {
+			url = new URL(airURL);
+
+			urlConnection = url.openConnection();
+
+			if (urlConnection instanceof HttpURLConnection) {
+
+				httpUrlConnection = (HttpURLConnection) urlConnection;
+
+				// Disable automatic rediredtion to see the status header
+				httpUrlConnection.setFollowRedirects(false);
+
+				int responseCode;
+				String responseMessage;
+
+				logonCredentials = username + ":" + password;
+				encoding = new BASE64Encoder().encode(logonCredentials
+						.getBytes());
+
+				// Now set connection parameters
+				httpUrlConnection.setDoOutput(true);
+				httpUrlConnection.setDoInput(true);
+				httpUrlConnection.setRequestMethod("POST");
+				httpUrlConnection
+						.setRequestProperty("Content-Type", "text/xml");
+				httpUrlConnection.setRequestProperty("Content-Length",
+						new Integer(request.length()).toString());
+				httpUrlConnection.setRequestProperty("Authorization", "Basic "
+						+ encoding);
+				httpUrlConnection.setRequestProperty("User-Agent",
+						"VAS-UCIP/3.1/1.0");
+
+				OutputStream out = httpUrlConnection.getOutputStream();
+				Writer wout = new OutputStreamWriter(out);
+
+				wout.write(request);
+
+				wout.flush();
+				wout.close();
+
+				BufferedReader in = new BufferedReader(new InputStreamReader(
+						httpUrlConnection.getInputStream()));
+
+				while ((line = in.readLine()) != null) {
+					response = response + line;
+
+				}
+
+				response = Utilities.removeFromString(response);
+
+			}
+		} catch (MalformedURLException e) {
+			logger.debug("URL ERROR");
+			// Put Error Handler Routine Here
+		} catch (IOException e) {
+			// Put Error Handler Routine Here
+			// This is critical error
+			logger.debug("I/O ERROR");
+			e.printStackTrace();
+		}
+		catch(Exception e){
+			logger.debug("Exception ERROR");
+		}
+		return response;
+
+	}
+	
+
+	public static String validateFAFNumber(String fafNumber) {
+		if (fafNumber.length() < 11) {
+			fafNumber = "+234" + fafNumber;
+		} else {
+			fafNumber = "+234" + fafNumber.substring(1);
+		}
+
+		return fafNumber;
+	}
+
+	public static Date formatISODate(String isodate) {
+
+		int year = new Integer(isodate.substring(0, 4)).intValue();
+		int month = new Integer(isodate.substring(4, 6)).intValue();
+		int day = new Integer(isodate.substring(6, 8)).intValue();
+
+		Calendar c1 = Calendar.getInstance();
+		c1.set(year, month - 1, day);
+
+		return c1.getTime();
+
+	}
+
+	public static Date printDate() {
+		String DATE_FORMAT = "dd-MM-yy HH:MM:SS";
+		java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
+				DATE_FORMAT);
+		Calendar c1 = Calendar.getInstance();
+
+		// remember months are zero-based : 0 jan 1 feb ...
+
+		Date now = new Date();
+		now = c1.getTime();
+		// now = sdf.format(c1.getTime());
+
+		return now;
+	}
+
+	/*
+	 * public static Date printDate(){
+	 * 
+	 * String DATE_FORMAT = "yyyy-MM-DD HH:MM:SS"; Date now = new Date();
+	 * java.text.SimpleDateFormat sdf = new
+	 * java.text.SimpleDateFormat(DATE_FORMAT); String[] ids =
+	 * TimeZone.getAvailableIDs(+1 * 60 * 60 * 1000);
+	 * 
+	 * 
+	 * SimpleTimeZone pdt = new SimpleTimeZone(+1 * 60 * 60 * 1000, ids[0]);
+	 * 
+	 * Calendar calendar = new GregorianCalendar(pdt); Date trialTime = new
+	 * Date(); calendar.setTime(trialTime); try { now =
+	 * sdf.parse(sdf.format(calendar.getTime())); logger.debug("databundle
+	 * utilities printDate: " + now);
+	 *  } catch (ParseException ex) {
+	 * Logger.getLogger(Utilities.class.getName()).log(Level.SEVERE, null, ex); } //
+	 * return calendar.getTime(); return now;
+	 * 
+	 *  }
+	 */
+
+	public File getCDRFile() {
+		return this.cdrfile;
+	}
+
+	public void setCDRFile(File cdrFile) {
+		this.cdrfile = cdrFile;
+	}
+
+	/*public boolean writeToCDRFile(Activity activity) {
+		BufferedWriter out = null;
+		String toWrite = null;
+		boolean writeSuccess = false;
+		SimpleDateFormat f = new SimpleDateFormat("yyyyMMDDHHSS");
+		String currentDate = this.getCDRFileISO8601DateTime(activity
+				.getActivityDate());
+		try {
+			toWrite = activity.getMsisdn() + ","
+					+ activity.getCurrentServiceClass() + ","
+					+ activity.getNewServiceClass() + "," + currentDate + ","
+					+ activity.getStatusCode() + "\n";
+			out = new BufferedWriter(new FileWriter(this.cdrfile, true));
+
+			out.write(toWrite);
+
+			out.close();
+
+		} catch (IOException ex) {
+			Logger.getLogger(Utilities.class.getName()).log(Level.SEVERE, null,
+					ex);
+		} finally {
+			try {
+				out.close();
+				toWrite = null;
+			} catch (IOException ex) {
+				Logger.getLogger(Utilities.class.getName()).log(Level.SEVERE,
+						null, ex);
+			}
+		}
+		return writeSuccess;
+	}*/
+
+	public void setDataBundleServiceManagerImpl(
+			DataBundleServiceManagerImpl databundleServiceManagerImpl) {
+		this.databundleServiceManagerImpl = databundleServiceManagerImpl;
+		logger.debug("databundleServiceManagerImpl OF utilities: "
+				+ this.databundleServiceManagerImpl);
+	}
+
+	public String getCDRFileISO8601DateTime(Date trialTime) {
+		String year = " ";
+		String month = " ";
+		String day = " ";
+		String hour = " ";
+		String minute = " ";
+		String second = " ";
+
+		String[] ids = TimeZone.getAvailableIDs(+1 * 60 * 60 * 1000);
+		// if no ids were returned, something is wrong.
+		if (ids.length != 0) {
+
+			SimpleTimeZone pdt = new SimpleTimeZone(+1 * 60 * 60 * 1000, ids[0]);
+
+			Calendar calendar = new GregorianCalendar(pdt);
+			// Date trialTime = new Date();
+			calendar.setTime(trialTime);
+			logger.debug("YspCDR date is : " + calendar.getTime());
+			year = new Integer(calendar.get(Calendar.YEAR)).toString();
+			month = new Integer(calendar.get(Calendar.MONTH) + 1).toString();
+			if (month.length() == 1) {
+				month = "0" + month;
+			}
+
+			day = new Integer(calendar.get(Calendar.DAY_OF_MONTH)).toString();
+			if (day.length() == 1) {
+				day = "0" + day;
+			}
+
+			hour = new Integer(calendar.get(Calendar.HOUR_OF_DAY)).toString();
+			if (hour.length() == 1) {
+				hour = "0" + hour;
+			}
+
+			minute = new Integer(calendar.get(Calendar.MINUTE)).toString();
+			if (minute.length() == 1) {
+				minute = "0" + minute;
+			}
+
+			second = new Integer(calendar.get(Calendar.SECOND)).toString();
+			if (second.length() == 1) {
+				second = "0" + second;
+			}
+
+		}
+		// return year+month+day+"T"+hour+":"+minute+":"+second+"+0100";
+		return year + month + day + hour + minute + second;
+	}
+
+	public static String sendToTelnetServer(String request) {
+		String mResponse = null;
+		try {
+			// check to see if the connection is still up
+			if (telnet.Isconnected() != true) {
+				logger.debug("Im not connected");
+				initiateTelnetConnection();
+				if (telnet.Isconnected() == false) {
+					return mResponse;
+				}
+				logger.debug("Im now connected");
+			}
+			// send first MINSAT Command
+			mResponse = telnet.send(request);
+			if (telnet.Isconnected() != true) {
+				logger.debug("Im not connected");
+				initiateTelnetConnection();
+				if (telnet.Isconnected() == false) {
+					return mResponse;
+				}
+				logger.debug("Im now connected");
+			}
+			// check if the response is null, i am assuming that SOG is
+			// connected but not responding
+			if ((mResponse == null) || (mResponse == "")) {
+				logger.debug("Respose timeout in MINSAT, I will not reconnect to resend request");
+				telnetServerLogOUT();
+				telnet.disconnect();
+				initiateTelnetConnection();
+				mResponse = telnet.send(request);
+			}
+			if (telnet.Isconnected() != true) {
+				logger.debug("Im not connected");
+				initiateTelnetConnection();
+				if (telnet.Isconnected() == false) {
+					return mResponse;
+				}
+				logger.debug("Im now connected");
+			}
+			if (telnet.Isconnected() != true) {
+				logger.debug("Im not connected");
+				initiateTelnetConnection();
+				if (telnet.Isconnected() == false) {
+					return mResponse;
+				}
+				logger.debug("Im now connected");
+			}
+
+			// check a second time if the response is still null, i am assuming
+			// that SOG is connected but not responding
+			if ((mResponse == null) || (mResponse == "")) {
+				logger.debug("Respose timeouted out again in MINSAT, I will not reconnect but will not resend request");
+				Utilities.telnetServerLogOUT();
+				telnet.disconnect();
+				Utilities.initiateTelnetConnection();// this.Sog_intialize(iSogIP,
+														// iSogPort, iSogLogin);
+				mResponse = telnet.send(request);
+				if ((mResponse == null) || (mResponse == "")) {
+					return mResponse;
+				}
+
+			}
+			mResponse = mResponse.trim();
+			logger.debug("Minsat server response = " + mResponse);
+			// check if response has 0 or 10216 or 10218 or 10220
+			if ((mResponse.indexOf(Response1) > -1)
+					|| (mResponse.indexOf(Response2) > -1)
+					|| (mResponse.indexOf(Response2) > -1)
+					|| (mResponse.indexOf(Response4) > -1)) {
+				logger.debug("The request was sent Successfully");
+				return mResponse;
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally{
+			if (telnet.Isconnected() ) {Utilities.telnetServerLogOUT();}
+		}
+		return mResponse;
+	}
+
+	public static boolean initiateTelnetConnection() {
+		/*telnetServerIP = configuration.getString("telnet.server.ipaddress");
+		telnetServerPort = configuration.getString("telnet.server.port");
+		telnetServerUsername = configuration.getString("telnet.server.username");
+		telnetServerPassword = configuration.getString("telnet.server.password");*/
+		//added by Chidi
+		InputStream inputStream = null;
+		Properties properties;
+		inputStream = Utilities.class.getResourceAsStream("databundle.properties");
+		properties = new Properties();
+		// to here
+		String mResponse = "";
+		// telnet.setPrompt("Enter command:");
+		// telnet.setPrompt("Escape character is '^]'.");
+		telnet.setPrompt(";");
+		try {
+			//modified by Chidi
+			properties.load(inputStream);
+			telnetServerIP = properties.getProperty("telnet.a.ipaddress");
+			telnetServerPort = properties.getProperty("telnet.a.port");
+			telnetServerUsername = properties.getProperty("telnet.a.username");
+			telnetServerPassword = properties.getProperty("telnet.a.password");
+			//end of modification
+			if (telnet.connect(telnetServerIP, Integer
+					.valueOf(telnetServerPort).intValue()) == true) {
+				mResponse = telnet.send("LOGIN:" + telnetServerUsername.trim()
+						+ ":" + telnetServerPassword.trim() + ";");
+				logger.debug("Sog Initialize.. Response " + mResponse);
+				if (mResponse.indexOf(Response1) > -1) {
+					return true;
+				} else {// 2nd Login attempt
+					mResponse = telnet.send("LOGIN:"
+							+ telnetServerUsername.trim() + ":"
+							+ telnetServerPassword.trim() + ";");
+					if (mResponse.indexOf(Response1) > -1)
+						return true;
+					return false;
+				}
+			} else {// 2nd connect attempt
+				if (telnet.connect(telnetServerIP, Integer.valueOf(
+						telnetServerPort).intValue()) == true) {
+					mResponse = telnet.send("LOGIN:"
+							+ telnetServerUsername.trim() + ":"
+							+ telnetServerPassword.trim() + ";");
+					logger.debug("Minsat Initialize.. Response " + mResponse);
+					if (mResponse.indexOf(Response1) > -1) {
+						return true;
+					} else {// 2nd login attempt
+						mResponse = telnet.send("LOGIN:"
+								+ telnetServerUsername.trim() + ":"
+								+ telnetServerPassword.trim() + ";");
+						if (mResponse.indexOf(Response1) > -1)
+							return true;
+						return false;
+					}
+				}
+				logger.debug("Minsat Initialize.. failed");
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		return false;
+	}
+
+	public static boolean telnetServerLogOUT() {
+		String Lout = "LOGOUT;";
+		try {
+			if (telnet.Isconnected() == true) {
+
+				telnet.send(Lout);
+				telnet.disconnect();
+				logger.debug("telnet server disconnected");
+				return true;
+			}
+			return false;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		// return false;
+	}
+}

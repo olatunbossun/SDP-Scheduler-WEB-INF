@@ -1,0 +1,94 @@
+package com.celtel.databundle.dao.jdbc;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.List;
+
+import javax.sql.DataSource;
+
+import com.celtel.databundle.dao.SubscriberDAO;
+import com.celtel.databundle.model.Activity;
+import com.celtel.databundle.model.Subscriber;
+import com.celtel.databundle.dao.jdbc.SubscriberDAOJdbc.SubscribersQuery;
+import com.celtel.databundle.model.Subscriber;
+
+
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.support.JdbcDaoSupport;
+import org.springframework.jdbc.object.MappingSqlQuery;
+import org.springframework.jdbc.object.SqlUpdate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.orm.ObjectRetrievalFailureException;
+
+/**
+ * This class is the dao jdbc implementation for Subscriber
+ *
+ * <p><a href="Subscriber.java.html"><i>View Source</i></a>
+ *
+ * @author <a href="mailto:onu.p@ng.celtel.com">Paul Onu</a>
+ *         
+ *
+ */
+
+public class SubscriberDAOJdbc extends JdbcDaoSupport implements SubscriberDAO{
+	
+	public void createSubscriber(Subscriber subscriber)
+	{
+		
+						
+            String sql = "INSERT INTO Subscriber(subscriber_msisdn)";
+                   sql += "values (?)";
+            SqlUpdate su = new SqlUpdate(getDataSource(), sql);
+            
+            su.declareParameter(new SqlParameter("subscriber_msisdn", Types.VARCHAR));
+		             
+            
+            su.compile();
+            
+            Object[] params = new Object[] 
+                {subscriber.getMsisdn()};
+                     
+                       
+            //KeyHolder keys = new GeneratedKeyHolder();
+            su.update(params);
+            //account.setAccountId(new Long(keys.getKey().longValue()));          
+           
+            //if (logger.isDebugEnabled()) {
+              //  logger.info("user's id is: " + account.getAccountId());
+            //}
+            
+            
+         
+	}
+	
+	public Subscriber getSubscriber(Subscriber subscriber){
+		
+		List subscribers = new SubscribersQuery(getDataSource()).execute(new Object[]{subscriber.getMsisdn()});
+        if (subscribers.isEmpty()) {
+            //throw new ObjectRetrievalFailureException(Subscriber.class, subscriber.getMsisdn());  
+        	return new Subscriber();
+        }else{
+        	return (Subscriber) subscribers.get(0);
+        }
+        
+	}
+	
+	class SubscribersQuery extends MappingSqlQuery {
+        public SubscribersQuery(DataSource ds) {
+            super(ds, "SELECT * FROM Subscriber_Master where subscriber_msisdn=?");
+            super.declareParameter(new SqlParameter("subscriber_msisdn", Types.VARCHAR));
+            compile();
+        }
+        protected Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+            Subscriber subscriber = new Subscriber();
+            
+            subscriber.setMsisdn(rs.getString("subscriber_msisdn"));                                  
+                                          
+            return subscriber;
+        }
+    }
+	
+
+}

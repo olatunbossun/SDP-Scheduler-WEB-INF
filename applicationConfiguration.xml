@@ -1,0 +1,72 @@
+<billingplans>
+	<billingplan shortcode="*109*11#" description="Complete Daily Plan" successmessage="Dear subscriber welcome to Airtel Prepaid Complete Blackberry service" validity="1" status="1" cost="30000" externaldata1="SOCIALDAY_SDP">
+		<billingcommand command="CheckSubscriberCreditLimitCommandImpl" receiver="" param="30000" description="Check Subscriber Credit Limit" />
+		<billingcommand command="GetSubscriberIMSICommandImpl" receiver="" param="" description="Load Subscriber IMSI"  />
+		<billingcommand command="CheckSubscriberBarStatusCommandImpl" receiver="" param="" description="Check Subscribers Bar Status"  />
+		
+		<billingcommand command="CheckSubscriberPostpaidStatusCommandImpl" receiver="" param="" description="Check if Subscriber is Postpaid"  />
+		<billingcommand command="CreateBlackberryServiceCommandImpl" receiver="" param="Prepaid BIS Complete" description="Primary Service, Addon Service"  />
+		<billingcommand command="ChangeSubscriberTABSServiceCommandImpl" receiver="" param="I,APN38" description="Action, APNID"  />
+		<billingcommand command="ChangeSubscriberTABSServiceCommandImpl" receiver="" param="I,APN132" description="Action, APNID"  />
+		<billingcommand command="ChangeSubscriberTABSServiceCommandImpl" receiver="" param="I,BBLITE_SOC" description="Action, APNID"  />
+		<billingcommand command="SetSubscriberPSOBitCommandImpl" receiver="" param="6:1,8:0" description="PSOBIT : Value,[PSOBIT : Value]"  />
+		<billingcommand command="SetDedicatedAccountCommandImpl" receiver="" param="10:10240,1" description="DA_ACCT : VALUE_To_Add,Days_To_Extend_Expiry"  />
+		<billingcommand command="DeductServiceFeeCommandImpl" receiver="" param="2" description="Amount to deduct for service"  />
+		<billingcommand command="SychronizeSubscriberDataToDBCommandImpl" receiver="" param="2" description="Save subscriber to database and exit"  />
+	</billingplan>	
+	
+	<billingplan shortcode="*109*22#" description="Postpaid Social Weekly Plan" successmessage="Dear subscriber welcome to Airtel Prepaid Complete Blackberry service" validity="1" davalue="" cost="1000" externaldata1="SOCIALWEEK_SDP">
+		<billingcommand command="CheckSubscriberCreditLimitCommandImpl" receiver="" param="1000" description="Check Subscriber Credit Limit" />
+		<billingcommand command="GetSubscriberIMSICommandImpl" receiver="" param="" description="Load Subscriber IMSI"  />
+		<billingcommand command="CheckSubscriberBarStatusCommandImpl" receiver="" param="" description="Check Subscribers Bar Status"  />
+		
+		<billingcommand command="CheckSubscriberPostpaidStatusCommandImpl" receiver="" param="" description="Check if Subscriber is Postpaid"  />
+		<billingcommand command="CreateBlackberryServiceCommandImpl" receiver="" param="Prepaid BIS Social,Internet Browsing" description="Primary Service, Addon Service"  />
+		<billingcommand command="ChangeSubscriberTABSServiceCommandImpl" receiver="" param="I,APN38" description="Action, APNID"  />
+		<billingcommand command="ChangeSubscriberTABSServiceCommandImpl" receiver="" param="I,APN132" description="Action, APNID"  />
+		<billingcommand command="ChangeSubscriberTABSServiceCommandImpl" receiver="" param="I,BBLITE_SOC" description="Action, APNID"  />
+		<billingcommand command="SetSubscriberPSOBitCommandImpl" receiver="" param="6:1,8:0" description="PSOBIT : Value,[PSOBIT : Value]"  />
+		<billingcommand command="SetDedicatedAccountCommandImpl" receiver="" param="10:10240,1" description="DA_ACCT : VALUE_To_Add,Days_To_Extend_Expiry"  />
+		<billingcommand command="DeductServiceFeeCommandImpl" receiver="" param="2" description="Amount to deduct for service"  />
+		<billingcommand command="SychronizeSubscriberDataToDBCommandImpl" receiver="" param="2" description="Save subscriber to database and exit"  />
+	</billingplan>	
+	
+	<billingplan shortcode="socialmonthpp" description="Postpaid Social Monthly Plan" successmessage="Dear subscriber welcome to Airtel postpaid Blackberry service" validity="30" davalue="" cost="3000" externaldata1="SOCIALMONTH_SDP">
+		<billingcommand command="CheckSubscriberCreditLimitCommandImpl" receiver="" param="200" description="Check Subscriber Credit Limit" />
+		<billingcommand command="GetSubscriberIMSICommandImpl" receiver="" param="" description="Load Subscriber IMSI"  />
+		<billingcommand command="CheckSubscriberBarStatusCommandImpl" receiver="" param="" description="Check Subscribers Bar Status"  />
+		
+		<billingcommand command="CheckSubscriberPostpaidStatusCommandImpl" receiver="" param="" description="Check if Subscriber is Postpaid"  />
+		<billingcommand command="CreateBlackberryServiceCommandImpl" receiver="" param="Prepaid BIS Social,Internet Browsing" description="Primary Service, Addon Service"  />
+		<billingcommand command="ChangeSubscriberTABSServiceCommandImpl" receiver="" param="I,APN38" description="Action, APNID"  />
+		<billingcommand command="ChangeSubscriberTABSServiceCommandImpl" receiver="" param="I,APN132" description="Action, APNID"  />
+		<billingcommand command="ChangeSubscriberTABSServiceCommandImpl" receiver="" param="I,BBLITE_SOC" description="Action, APNID"  />
+		<billingcommand command="SetSubscriberPSOBitCommandImpl" receiver="" param="6:1,8:0" description="PSOBIT : Value,[PSOBIT : Value]"  />
+		<billingcommand command="SetDedicatedAccountCommandImpl" receiver="" param="10:10240,1" description="DA_ACCT : VALUE_To_Add,Days_To_Extend_Expiry"  />
+		<billingcommand command="DeductServiceFeeCommandImpl" receiver="" param="2" description="Amount to deduct for service"  />
+		<billingcommand command="SychronizeSubscriberDataToDBCommandImpl" receiver="" param="2" description="Save subscriber to database and exit"  />
+	</billingplan>
+	
+	<billingplan shortcode="status" description="This is used to get sttaus" successmessage="Dear subscriber, your request will be concluded shortly" validity="" davalue="" cost="" externaldata1="">
+		<billingcommand command="GetSubscriberBBStatusFromDBCommandImpl" receiver="" param="Prosumer Prepaid,BlackBerry" description="Servicename,serviceName"  />	
+		<billingcommand command="GetSubscriberBBStatusFromDBCommandImpl" receiver="" param="Prepaid BIS Lite,BlackBerry" description="Servicename,serviceName"  />
+	</billingplan>
+	
+	
+	<billingplan shortcode="test" description="This is BB weekly Offer" successmessage="" validity="7" davalue="" cost="1000" externaldata1="BISWEEK">
+		<billingcommand command="GetSubscriberIMSICommandImpl" receiver="" param="" description="Load Subscriber IMSI"  />
+		<billingcommand command="CreateBlackberryServiceCommandImpl" receiver="" param="Prosumer Prepaid,Internet Browsing" description="Primary Service, Addon Service"  />
+	</billingplan>	
+	
+	<billingplan shortcode="renewalpostpaidbb" description="This is BB postpaid renewal" successmessage="" validity="" davalue="" cost="1000" externaldata1="">
+		<billingcommand command="RenewSubscriberDBRecordCommandImpl" receiver="" param="" description="Update SubscriberDetail in DB"  />		
+	</billingplan>
+	
+	<billingplan shortcode="synchronizepostpaidbb" description="This is BB postpaid renewal" successmessage="" validity="" davalue="" cost="1000" externaldata1="">
+		<billingcommand command="SynchronizeBlackberryServiceCommandImpl" receiver="" param="" description="Servicename,validity"  />	
+	</billingplan>
+	
+	<billingplan shortcode="emailTest" description="This is BB postpaid renewal" successmessage="" validity="" davalue="" cost="1000" externaldata1="">
+		<billingcommand command="MyTestExecutorCommandImpl" receiver="" param="" description="Servicename,validity"  />	
+	</billingplan>
+</billingplans>

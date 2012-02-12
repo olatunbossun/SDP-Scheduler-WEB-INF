@@ -1,0 +1,182 @@
+package com.celtel.databundle.controller;
+
+
+import com.celtel.databundle.service.impl.*;
+
+import org.apache.log4j.*;
+import org.apache.commons.configuration.*;
+import org.apache.commons.lang.*;
+
+import java.sql.*;
+import java.util.Map;
+import java.io.File;
+
+
+/**
+*
+* @author ponu.
+*/
+public class DataBundleMigration {
+	
+
+    static Logger logger = Logger.getLogger(DataBundleMigration.class);
+    private static Connection conn=null;
+    private static Configuration configuration = null;
+    PreparedStatement stmnt = null;
+    ResultSet rs = null;
+    String Selectquery = null;
+    private String stageClassServiceCode = "";    
+    private String msisdn = "";
+    public static DataBundleWebServiceManagerImpl dataBundleWebServiceManagerImpl ;;
+    public static UcipServiceManager ucipServiceManager ;
+    
+    String retcode = ""; 
+	Map balanceResult;
+	String responseCode = null;
+	String response = null;
+	double currentBalance = 0;
+	String currentServiceClass = null;
+	
+	
+	public DataBundleMigration() {	
+            System.out.println("initializing DataBundleMigration,ucipServiceManager :" + this.ucipServiceManager);
+            
+    }
+	
+	
+	public void setConfiguration(Configuration configuration){
+    	this.configuration = configuration;
+    	System.out.println("set this.configuration:" + configuration);
+    }
+	
+	public void setDataBundleWebServiceManagerImpl(DataBundleWebServiceManagerImpl dataBundleWebServiceManagerImpl){
+    	this.dataBundleWebServiceManagerImpl = dataBundleWebServiceManagerImpl;
+    	System.out.println("set this.databundleWebServiceManagerImpl:" + dataBundleWebServiceManagerImpl);
+    }
+	
+	public void setUcipServiceManager(UcipServiceManager ucipServiceManager){
+    	this.ucipServiceManager = ucipServiceManager;
+    	System.out.println("set this.ucipServiceManager:" + ucipServiceManager);
+    }
+	
+	
+	
+	//migrate (move) to main service class ...  INVOKED BY WEB SERVICE
+	
+	public String migrateSubToMainServiceClass(String msisdn) {
+		logger.info(" msisdn in DataBundleMigration is : " +msisdn);
+                logger.debug("DataBundleWebServiceManagerImpl IS : "+this.dataBundleWebServiceManagerImpl);
+		
+	try {
+		balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+		
+		if (balanceResult.get("responseCode").toString().equalsIgnoreCase("0")){
+			
+			currentBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                        currentServiceClass = (String) balanceResult.get("serviceClass");
+
+                        logger.debug("BALANCE RESULT IS : "+currentBalance);
+
+                        logger.debug("CURRENT SERVICE CLASS IS : "+currentServiceClass);
+                        
+            
+                      //  databundleWebServiceManagerImpl = new DataBundleWebServiceManagerImpl();
+                         System.out.println("msisdn:" + msisdn);
+        
+      
+                        msisdn = msisdn.trim();
+                        
+            //CHECK IF SUB OPTED FOR TRUTEXT STAGE CLASS
+            
+           if(currentServiceClass.indexOf(configuration.getString("databundle.trutext.stage.service.class.id")) > -1){            
+            	//MOVE HIM TO TRUTEXT MAIN SERVICE CLASS.
+            	 // System.out.println("SUB OPTED FOR TRUTEXT databundleWebServiceManagerImpl "+databundleWebServiceManagerImpl); 
+            	
+                        retcode = dataBundleWebServiceManagerImpl.moveToTruTextMain(msisdn);
+            	
+            	//CHECK IF SUB OPTED FOR TRUTALK STAGE CLASS
+            }else if(currentServiceClass.indexOf(configuration.getString("databundle.trutalk.stage.service.class.id")) > -1){
+            	//MOVE HIM TO TRUTALK MAIN SERVICE CLASS.            	
+                     retcode = dataBundleWebServiceManagerImpl.moveToTruTalkMain(msisdn);
+                    }else if(currentServiceClass.indexOf(configuration.getString("databundle.trutalk.main.service.class.id")) > -1 || currentServiceClass.indexOf(configuration.getString("databundle.trutext.main.service.class.id")) > -1){
+                        //ALREADY IN TRUETALK AND TRUTEXT MAIN SERVICE CLASS.            	
+                      retcode = "0";
+                    }else {
+                    retcode = "1";
+                    }
+            }else {
+                    retcode = "1";
+                    }
+            	
+		}   catch (Exception e){
+                //response = configuration.getString("ucip.125.msg");
+                //responseCode = "1";
+                    retcode = "1";
+                //this.logger.error("ERROR: " +e.getStackTrace());
+                e.printStackTrace();
+                    }
+
+        
+        return retcode;
+			
+	}
+		
+	
+	
+//	migrate (move) back to staging service class ... INVOKED BY WEB SERVICE
+	
+	
+	public String moveSubToStageServiceClass(String msisdn) {
+		logger.info(" msisdn in DataBundleMigration is : " +msisdn);
+		
+	try {
+		balanceResult = ucipServiceManager.getSubscriberBalance(msisdn);
+		
+		if (balanceResult.get("responseCode").toString().equalsIgnoreCase("0")){
+			
+			currentBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                        currentServiceClass = (String) balanceResult.get("serviceClass");
+
+                        logger.debug("BALANCE RESULT IS : "+currentBalance);
+
+                        logger.debug("CURRENT SERVICE CLASS IS : "+currentServiceClass);
+            
+                     //   databundleWebServiceManagerImpl = new DataBundleWebServiceManagerImpl();
+                        System.out.println("msisdn:" + msisdn);
+        
+    		
+                        msisdn = msisdn.trim();
+            //CHECK IF SUB OPTED FOR TRUTEXT STAGE CLASS
+            
+             if(currentServiceClass.indexOf(configuration.getString("databundle.trutext.main.service.class.id"))> -1){            
+            	//MOVE HIM TO TRUTEXT STAGE SERVICE CLASS.
+            	retcode = dataBundleWebServiceManagerImpl.moveToTruTextStage(msisdn);
+            	
+            	//CHECK IF SUB OPTED FOR TRUTALK STAGE CLASS
+            }else if(currentServiceClass.indexOf(configuration.getString("databundle.trutalk.main.service.class.id"))> -1){
+            	//MOVE HIM TO TRUTALK STAGE SERVICE CLASS.
+            	retcode = dataBundleWebServiceManagerImpl.moveToTruTalkStage(msisdn);
+            }else if(currentServiceClass.indexOf(configuration.getString("databundle.trutext.stage.service.class.id")) > -1 || currentServiceClass.indexOf(configuration.getString("databundle.trutalk.stage.service.class.id")) > -1){
+                        //ALREADY IN TRUETALK AND TRUTEXT  STAGE CLASS.            	
+                      retcode = "0";
+                    }else {
+                    retcode = "1";
+                    }            
+        }else {
+                    retcode = "1";
+                    }
+        	
+	}   catch (Exception e){
+            //response = configuration.getString("ucip.125.msg");
+            //responseCode = "1";
+            retcode = "1";
+            this.logger.error("ERROR: " +e.getStackTrace());
+            e.printStackTrace();
+                }
+
+    
+    return retcode;
+		
+		}
+}
+

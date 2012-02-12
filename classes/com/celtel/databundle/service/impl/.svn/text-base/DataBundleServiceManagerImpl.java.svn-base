@@ -1,0 +1,289 @@
+package com.celtel.databundle.service.impl;
+
+import java.util.*;
+
+import com.celtel.databundle.dao.ActivityDAO;
+import com.celtel.databundle.dao.SubscriberDAO;
+import com.celtel.databundle.model.Activity;
+import com.celtel.databundle.model.Subscriber;
+import com.celtel.databundle.service.utilities.*;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.lang.*;
+
+import jmsproducer.JmsProducerClient;
+
+
+import com.celtel.databundle.service.DataBundleServiceManager;
+
+
+
+/**
+ * This class is the business service interface implementation that ties the web service layer and the data access layer
+ *
+ * <p><a href="AccountManagerImpl.java.html"><i>View Source</i></a>
+ *
+ * @author <a href="mailto:onu.p@ng.celtel.com">Paul Onu </a>
+ *         
+ *
+ */
+
+public class DataBundleServiceManagerImpl implements DataBundleServiceManager{
+	
+    private Log logger = LogFactory.getLog(DataBundleServiceManagerImpl.class);
+    private ActivityDAO dao;
+    private SubscriberDAO subscriberDAO;
+    private Subscriber subscriber;
+    private Activity activity;
+    private UcipServiceManager ucipServiceManager; 
+    private TelnetServiceManager telnetServiceManager;
+    private Configuration configuration = null;
+    private Utilities utilities =null;
+    private JmsProducerClient jmsClient = new JmsProducerClient();
+    
+        double currentBalance = 0;
+	double newBalance = 0;
+	double minimumBalance = 0;
+	double migrationCharge = 0;
+	String currentServiceClass = null;
+	String currentServiceOfferingId = null;
+	String currentAccumulatorId = null;
+	String currentAccumulatorValue = null;
+	String proposedServiceOfferingId = null;
+	String newServiceOfferingId = null;
+	String newAccumulatorId = null;
+	String newAccumulatorValue = null;
+	String accumulator_id_mapping = null;
+	
+	Map balanceResult;
+	String responseCode = "1";
+	String response = "";
+        String responseMessage = "";
+   
+	//CONSTRUCTOR
+	public DataBundleServiceManagerImpl(){
+		
+	}
+    
+    public void setJmsProducerClient(JmsProducerClient jmsClient){
+    	this.jmsClient = jmsClient;
+    }
+    
+    public void setUtilities(Utilities utilities){
+    	this.utilities = utilities;
+    }
+	
+	public void setConfiguration(Configuration configuration){
+    	this.configuration = configuration;
+    }
+    
+    public void setActivityDAO(ActivityDAO dao)
+    {
+    	this.dao = dao;
+    }
+    
+    public void setSubscriberDAO(SubscriberDAO subscriberDAO){
+    	
+    	this.subscriberDAO = subscriberDAO;
+    }
+    
+    public void setUcipServiceManager(UcipServiceManager ucipServiceManager){
+    	this.ucipServiceManager = ucipServiceManager;
+    }
+    
+    public String handleRequest(Subscriber subscriber){
+    	this.currentBalance = 0;
+    	this.newBalance = 0;
+    	this.minimumBalance = 0;
+    	this.migrationCharge = 0;
+    	this.currentServiceClass = null;
+    	this.currentServiceOfferingId = null;
+    	this.currentAccumulatorId = null;
+    	this.currentAccumulatorValue = null;
+    	this.proposedServiceOfferingId = null;
+    	this.newServiceOfferingId = null;
+    	this.newAccumulatorId = null;
+    	this.newAccumulatorValue = null;
+    	this.response = "";
+    	this.responseCode = "";
+    	this.responseMessage = "";
+    	this.accumulator_id_mapping = null;
+    	
+    	
+        this.subscriber = subscriber;
+    	//Now do a balance request to determine subscriber current balance and service class
+    	
+    	try{
+    		balanceResult = telnetServiceManager.getSubscriberBalance(subscriber.getMsisdn().substring(1));
+    		if (balanceResult.get("responseCode").toString().equalsIgnoreCase("0")){
+    			
+    			currentBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                currentServiceClass = (String) balanceResult.get("serviceClass".toLowerCase());
+                this.currentServiceOfferingId = (String) balanceResult.get("serviceoffering".toLowerCase());
+                if(Integer.valueOf(this.currentServiceOfferingId).intValue()>1){
+            	this.currentAccumulatorId = (String) balanceResult.get("serviceClass".toLowerCase());
+            	this.currentAccumulatorValue = (String) balanceResult.get("serviceClass".toLowerCase());}
+                
+
+        		logger.debug("BALANCE RESULT IS : "+currentBalance);
+
+        		logger.debug("CURRENT SERVICE CLASS IS : "+currentServiceClass);
+                        logger.debug("subscriber msisdn : "+subscriber.getMsisdn()+" subscriber msg : "+subscriber.getMessage());
+                        
+                
+                //500MB Subscription
+                
+              if (subscriber.getMessage().indexOf(configuration.getString("databundle.500MB.code")) > -1){
+            	  set500MBSubscription( subscriber);
+            	  }
+              // 3000MB databundle subscription ( defined as unlimited)
+              else if (subscriber.getMessage().indexOf(configuration.getString("databundle.3000MB.code")) > -1){
+            	  
+            	  set3000MBSubscription( subscriber);
+              }
+    		}else{
+            	//Not allowed to perform any type of migration   
+     		   //Great now get the guys balance and then comfirm now service class for logging purposes
+				/*	balanceResult = ucipServiceManager.getSubscriberBalance(subscriber.getMsisdn().substring(1));
+                 if (balanceResult != null)
+                 {
+                     newBalance = new Double((String)balanceResult.get("balance")).doubleValue();
+                     newServiceClass = (String)balanceResult.get("serviceClass");
+                 }
+                    if(balanceResult != null && balanceResult.get("responseCode") != null){this.responseCode=balanceResult.get("responseCode").toString();}else{                this.responseCode="100";}
+                */
+    			this.responseCode="100";
+                response = this.getMessage(responseCode, "");
+            }
+ 
+    		}
+    	catch (Exception e){
+          //  response = configuration.getString("ucip.125.msg");
+          //  responseCode = "1";
+            
+            this.responseCode="125";
+            response = this.getMessage(responseCode, "");
+            this.logger.error("ERROR: " +e.getStackTrace());
+    	//	e.printStackTrace();
+    	}
+    	//Now prepare for logging activity to database
+ /*   	Activity activity = new Activity();
+    	activity.setServiceCode(subscriber.getMessage());
+    	activity.setMsisdn(subscriber.getMsisdn());
+    	activity.setCurrentServiceClass(currentServiceClass);
+    	activity.setCurrentBalance(new Double(currentBalance));
+    	activity.setNewServiceClass(newServiceClass);
+    	activity.setNewBalance(new Double(newBalance));
+    	activity.setStatusCode(responseCode);
+    	activity.setStatusMessage(response);
+    	activity.setActivityDate(Utilities.printDate());
+    	
+    	this.dao.createActivity(activity);
+    	*/
+    	//WRITE TO CDR FILE.
+    	
+    //	utilities.writeToCDRFile(activity);
+    	
+    	logger.debug("DATABUNDLE subscription ACTIVITY RECORD CREATED");
+
+    	//   SEND SMS TO SUBSCRIBER.
+        logger.debug("before calling sendSMS():responseMessage =  "+responseMessage+", response : "+response);
+    	
+    	//sendSMS(responseMessage);
+    	
+    	response = "<ussd><type>3</type><msg>"+responseMessage.trim()+"</msg></ussd>";
+    	
+    	
+    	
+    	
+    	logger.debug("RESPONSE IS  : "+response);
+    	return response;
+    }
+    
+    public String getMessage(String responseCode, String serviceCode){
+    	
+    	
+        if (responseCode.equalsIgnoreCase("0")){
+            if (serviceCode.indexOf(configuration.getString("databundle.trutalk.code"))> -1){
+                responseMessage = configuration.getString("databundle.trutalk.stage.class.msg");
+
+            }
+            else if(serviceCode.indexOf(configuration.getString("databundle.trutext.code"))> -1){
+                responseMessage = configuration.getString("databundle.trutext.stage.class.msg");
+            }
+            
+        }
+        else if(responseCode.equalsIgnoreCase("10")){
+            //already existing in trutalk stage
+            responseMessage = configuration.getString("databundle.trutalk.stage.class.existing.msg");
+        }
+        else if(responseCode.equalsIgnoreCase("11")){
+            //already existing in trutext stage
+            responseMessage = configuration.getString("databundle.trutext.stage.class.existing.msg");
+        }
+        
+        else if(responseCode.equalsIgnoreCase("100")){
+            responseMessage = configuration.getString("ucip.100.msg");
+        }
+        else if(responseCode.equalsIgnoreCase("102")){
+            responseMessage = configuration.getString("ucip.102.msg");
+        }
+        else if(responseCode.equalsIgnoreCase("117")){
+            responseMessage = configuration.getString("ucip.117.msg");
+        }
+        else if(responseCode.equalsIgnoreCase("124")){
+            responseMessage = configuration.getString("ucip.124.msg");
+        }
+        else if(responseCode.equalsIgnoreCase("125")){
+            responseMessage = configuration.getString("ucip.125.msg");
+        }
+        else if(responseCode.equalsIgnoreCase("126")){
+            responseMessage = configuration.getString("ucip.126.msg");
+        } else if(responseCode.equalsIgnoreCase("127")){
+                responseMessage = configuration.getString("databundle.optout.msg");
+        }else {
+                responseMessage = configuration.getString("ucip.100.msg");
+            }
+        
+        return responseMessage;    
+    	   	
+    }
+    
+    public void sendSMS(String response){
+    	try{   		
+    	
+    logger.debug("YSP ABOUT TO SEND SMS"); 
+    logger.debug("response : "+response+","+"jms.store.url : "+configuration.getString("jms.store.url")+","+"jms.store.topic : "+configuration.getString("jms.store.topic")+","+"subscriber.getMsisdn() : "+subscriber.getMsisdn());  
+    jmsClient.run(response,configuration.getString("jms.store.url"),configuration.getString("jms.store.topic"), subscriber.getMsisdn().substring(1));
+    logger.debug(" YSP SMS SENT TO SUBSCRIBER : " +subscriber.getMsisdn());  
+    
+    	}catch(Exception e){
+    		e.printStackTrace();
+    	}
+    }
+
+	/**
+	 * @return Returns the telnetServiceManager.
+	 */
+	public TelnetServiceManager getTelnetServiceManager() {
+		return telnetServiceManager;
+	}
+
+	/**
+	 * @param telnetServiceManager The telnetServiceManager to set.
+	 */
+	public void setTelnetServiceManager(TelnetServiceManager telnetServiceManager) {
+		this.telnetServiceManager = telnetServiceManager;
+	}
+
+	protected void  set500MBSubscription(Subscriber subscriber){
+		getMessage( "127", "");
+	}
+	protected void  set3000MBSubscription(Subscriber subscriber){
+		
+	}
+}

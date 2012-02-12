@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate Mapping DTD 3.0//EN" 
+"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="com.vasconsulting.www.domain">
+	<class name="BillingPlan" table="billingplan">
+		<id name="id" column="id" type="string">
+			<generator class="assigned" />
+		</id>
+		<property name="shortcode" type="string" length="30" />
+		<property name="description" type="string" length="255" />
+		<property name="validity" type="int" length="5" />
+		<property name="davalue" type="string" length="15" />
+		<property name="cost" type="string" length="15" />
+		<property name="services" type="string" length="255" />
+		<property name="status" type="int" column="status" length="1" />
+
+	</class>
+</hibernate-mapping>

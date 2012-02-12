@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN//EN"
+    "http://www.springframework.org/dtd/spring-beans.dtd">
+
+<beans>
+	<!-- DBCP Datasource configuration -->
+
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close">
+
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://localhost:3306/ysp" />
+		<property name="username" value="root" />
+		<property name="password" value="paul" />
+	</bean>
+
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+
+	<!-- ActivityDAO -->
+	<bean id="activityDAO" class="com.celtel.unity.dao.jdbc.ActivityDAOJdbc">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<!-- SubscriberDAO -->
+	<bean id="subscriberDAO" class="com.celtel.unity.dao.jdbc.SubscriberDAOJdbc">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+</beans>
